@@ -111,6 +111,7 @@ async function boot(): Promise<void> {
 
   const startRun = (tutorial: boolean) => {
     if (!game) return
+    audio.stopDialog()
     audio.unlock()
     audio.startMusic()
     ticket = null
@@ -124,7 +125,8 @@ async function boot(): Promise<void> {
   }
 
   const pause = () => {
-    if (game?.mode !== 'playing') return
+    if (game?.mode !== 'playing' && game?.mode !== 'talking') return
+    audio.stopDialog()
     game.pause()
     ui.show('pause')
     input.unlockPointer()
@@ -167,6 +169,7 @@ async function boot(): Promise<void> {
     restart: () => startRun(false),
     resume,
     quit: () => {
+      audio.stopDialog()
       game?.toTitle()
       ui.show('title')
       input.unlockPointer()

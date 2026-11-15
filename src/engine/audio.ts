@@ -1,7 +1,8 @@
+import type { DialogVoiceLine } from '../game/game'
+
 /**
- * Web Audio mixer with music and SFX buses. Browsers only allow audio after a user gesture, so
- * `unlock()` runs from the first click/key press. Manus builds use registered Storage WAVs; the
- * GitHub Pages build uses local static copies. Synthesized cues cover failures and simple actions.
+ * Web Audio mixer with music, effects and character-dialogue buses. Browsers only allow audio
+ * after a user gesture, so `unlock()` runs from the first click/key press.
  */
 export type Sfx = 'pickup' | 'jump' | 'land' | 'ui' | 'talk' | 'quest' | 'win'
 
@@ -21,6 +22,15 @@ const AUDIO_URLS = import.meta.env.DEV ? {
   quest: '/manus-storage/game/sha256/3d3bde1cc09266e52899c61cc70138d5ff71ebc83a39635717a10029fdc536f4.wav',
   win: '/manus-storage/game/sha256/5399c4f5ff1435df6d9da3990fbebd09ebd6769472bb50b94ae5fc5ef84f7084.wav',
 }
+
+const DIALOG_LINES: DialogVoiceLine[] = [
+  'grandma-intro', 'grandma-progress', 'grandma-ready', 'grandma-thanks', 'grandma-done',
+  'fairy-intro', 'fairy-progress', 'fairy-ready', 'fairy-thanks', 'fairy-done',
+  'mushroom-intro', 'mushroom-progress', 'mushroom-ready', 'mushroom-thanks', 'mushroom-done',
+  'cat-intro', 'cat-progress', 'cat-ready', 'cat-thanks', 'cat-done',
+]
+
+const dialogUrl = (line: DialogVoiceLine) => `${import.meta.env.BASE_URL}audio/dialogs/${line}.wav`
 const CATALOG: Partial<Record<Sfx, string>> = { ...AUDIO_URLS }
 
 export class Audio {
@@ -28,19 +38,24 @@ export class Audio {
   private master: GainNode
   private music: GainNode
   private sfx: GainNode
+  private dialog: GainNode
   private musicTimer = 0
   private musicOn = false
   private buffers = new Map<string, AudioBuffer>()
   private catalogLoading = false
   private catalogLoaded = false
+  private dialogSource?: AudioBufferSourceNode
+  private dialogRequest = 0
 
   constructor() {
     this.ctx = new AudioContext()
     this.master = this.ctx.createGain()
     this.music = this.ctx.createGain()
     this.sfx = this.ctx.createGain()
+    this.dialog = this.ctx.createGain()
     this.music.connect(this.master)
     this.sfx.connect(this.master)
+    this.dialog.connect(this.master)
     this.master.connect(this.ctx.destination)
   }
 
@@ -48,7 +63,8 @@ export class Audio {
     if (this.ctx.state === 'suspended') void this.ctx.resume()
     if (!this.catalogLoading && !this.catalogLoaded) {
       this.catalogLoading = true
-      void Promise.all(Object.values(CATALOG).map(url => this.load(url).catch(() => null)))
+      const urls = [...Object.values(CATALOG), ...DIALOG_LINES.map(dialogUrl)]
+      void Promise.all(urls.map(url => this.load(url).catch(() => null)))
         .then(() => { this.catalogLoaded = true })
         .finally(() => { this.catalogLoading = false })
     }
@@ -58,6 +74,7 @@ export class Audio {
     const t = this.ctx.currentTime
     this.music.gain.setTargetAtTime(muted ? 0 : music * 0.45, t, 0.05)
     this.sfx.gain.setTargetAtTime(muted ? 0 : sfx * 0.7, t, 0.05)
+    this.dialog.gain.setTargetAtTime(muted ? 0 : sfx * 0.9, t, 0.05)
   }
 
   async load(url: string): Promise<AudioBuffer> {
@@ -69,13 +86,46 @@ export class Audio {
     return buffer
   }
 
-  playBuffer(buffer: AudioBuffer, bus: 'music' | 'sfx' = 'sfx', loop = false): AudioBufferSourceNode {
+  playBuffer(buffer: AudioBuffer, bus: 'music' | 'sfx' | 'dialog' = 'sfx', loop = false): AudioBufferSourceNode {
     const source = this.ctx.createBufferSource()
     source.buffer = buffer
     source.loop = loop
-    source.connect(bus === 'music' ? this.music : this.sfx)
+    source.connect(bus === 'music' ? this.music : bus === 'dialog' ? this.dialog : this.sfx)
     source.start()
     return source
+  }
+
+  /** Play the current NPC's dialogue. A fresh dialogue stops the prior phrase immediately. */
+  playDialog(line: DialogVoiceLine): void {
+    if (this.ctx.state !== 'running') return
+    this.stopDialog()
+    const request = this.dialogRequest
+    const url = dialogUrl(line)
+    const start = (buffer: AudioBuffer) => {
+      if (request !== this.dialogRequest || this.ctx.state !== 'running') return
+      const source = this.playBuffer(buffer, 'dialog')
+      this.dialogSource = source
+      source.addEventListener('ended', () => {
+        if (this.dialogSource === source) this.dialogSource = undefined
+      })
+    }
+    const cached = this.buffers.get(url)
+    if (cached) {
+      start(cached)
+    } else {
+      void this.load(url).then(start).catch(() => undefined)
+    }
+  }
+
+  stopDialog(): void {
+    this.dialogRequest += 1
+    if (!this.dialogSource) return
+    try {
+      this.dialogSource.stop()
+    } catch {
+      // A source that has already ended cannot be stopped again.
+    }
+    this.dialogSource = undefined
   }
 
   play(name: Sfx): void {

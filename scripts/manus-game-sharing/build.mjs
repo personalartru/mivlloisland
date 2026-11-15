@@ -6,7 +6,7 @@ import { assembleThreejsShareSite, GameSharingValidationError } from './metadata
 // Publication metadata is public project content; no runtime credentials are embedded here.
 const publicationOrigin = "https://plyuhik-tznvprwr.manus.game"
 const outputDirectory = "dist"
-const projectTitle = "Плюхик и Чудо-остров"
+const projectTitle = "Мурзик и Чудо-остров"
 // Run the original script through the invoking package manager, preserving argument quoting.
 const packageManager = process.env.npm_execpath
 if (!packageManager) throw new Error('Run sharing through the package.json build script')

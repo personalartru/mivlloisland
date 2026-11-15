@@ -2,7 +2,7 @@ import type { Audio } from '../engine/audio'
 import type { I18n } from '../engine/i18n'
 import type { Input } from '../engine/input'
 import { insertScore, type Quality, type SaveData, type SaveStore } from '../engine/save'
-import type { CompassTarget, DialogAction, DialogData, Hint } from '../game/game'
+import type { CompassTarget, DialogAction, DialogData, DialogVoiceLine, Hint } from '../game/game'
 import { ITEMS, ITEM_KINDS, QUESTS, questById, type QuestId } from '../game/quests'
 import { formatDuration, starsOf, type JourneyState } from '../game/rules'
 import type { NpcInfo } from '../game/npcs'
@@ -60,6 +60,7 @@ export class Ui {
   private onlineMessage = ''
   private onlineEntries: OnlineEntry[] | null = null
   private onlineLoading = false
+  private dialogVoice?: DialogVoiceLine
 
   constructor(
     private readonly i18n: I18n,
@@ -262,6 +263,7 @@ export class Ui {
     this.q('.dialog-name').textContent = data.name
     this.q('.dialog-title').textContent = data.title
     this.q('.dialog-text').textContent = data.text
+    this.dialogVoice = data.voiceLine
     const dots = Array.from({ length: data.need }, (_, i) => `<span class="dot ${i < Math.min(data.have, data.need) ? 'is-full' : ''}">${i < Math.min(data.have, data.need) ? ICON[data.item] : ''}</span>`).join('')
     this.q('.dialog-progress').innerHTML = `<span class="dialog-item">${ICON[data.item]}</span><span class="dialog-dots">${dots}</span><b>${Math.min(data.have, data.need)}/${data.need}</b>`
     const button = this.q<HTMLButtonElement>('.dialog-button')
@@ -269,9 +271,12 @@ export class Ui {
     button.textContent = this.i18n.t(data.action === 'accept' ? 'dialog.accept' : data.action === 'turnin' ? 'dialog.turnin' : 'dialog.close')
     this.setScreen('dialog')
     this.audio.play('ui')
+    this.audio.playDialog(data.voiceLine)
   }
 
   hideDialog(): void {
+    this.audio.stopDialog()
+    this.dialogVoice = undefined
     this.setScreen('hud')
   }
 
@@ -484,9 +489,13 @@ export class Ui {
   // ─── events ──────────────────────────────────────────────────────────────
 
   private onClick(event: Event): void {
-    const el = (event.target as HTMLElement).closest<HTMLElement>('[data-action], [data-dialog], [data-setting], [data-toggle]')
+    const el = (event.target as HTMLElement).closest<HTMLElement>('[data-action], [data-dialog], [data-dialog-replay], [data-setting], [data-toggle]')
     if (!el) return
     this.audio.unlock()
+    if (el.dataset.dialogReplay !== undefined && this.dialogVoice) {
+      this.audio.playDialog(this.dialogVoice)
+      return
+    }
     const action = el.dataset.action
     if (action) {
       this.audio.play('ui')
@@ -557,7 +566,7 @@ function template(): string {
   <section class="boot" data-screen="boot">
     <div class="boot-card">
       <div class="boot-mark">${ICON.star}</div>
-      <h1 class="boot-title">Плюхик</h1>
+      <h1 class="boot-title">Мурзик</h1>
       <p class="boot-sub">и Чудо-остров</p>
       <div class="boot-bar"><i></i></div>
       <p class="boot-status" data-i18n="boot.loading"></p>
@@ -570,7 +579,7 @@ function template(): string {
     <div class="title-shade"></div>
     <div class="title-card">
       <div class="logo">
-        <span class="logo-text">ПЛЮХИК</span>
+        <span class="logo-text">МУРЗИК</span>
         <span class="logo-small">И ЧУДО-ОСТРОВ</span>
       </div>
       <p class="tagline" data-i18n="game.tagline"></p>
@@ -605,11 +614,14 @@ function template(): string {
     <div class="hint" hidden><span class="hint-glyph"></span><span class="hint-text"></span></div>
     <div class="prompt" hidden><span class="prompt-key">E</span><span class="prompt-text"></span></div>
     <div class="banner" hidden></div>
-    <div class="touch">
-      <div class="touch-stick"><i></i></div>
+    <div class="touch" aria-label="Сенсорное управление">
+      <div class="touch-move-pad" aria-label="Джойстик движения">
+        <div class="touch-stick" aria-hidden="true"><i></i></div>
+      </div>
+      <div class="touch-look-cue" aria-hidden="true">Проведи справа<br>для камеры</div>
       <div class="touch-buttons">
-        <button class="touch-btn talk" data-touch="interact"><span data-i18n="touch.talk"></span></button>
-        <button class="touch-btn jump" data-touch="jump"><span data-i18n="touch.jump"></span></button>
+        <button class="touch-btn talk" data-touch="interact" aria-label="Говорить"><span data-i18n="touch.talk"></span></button>
+        <button class="touch-btn jump" data-touch="jump" aria-label="Прыжок"><span data-i18n="touch.jump"></span></button>
       </div>
     </div>
   </section>
@@ -623,7 +635,10 @@ function template(): string {
         <h2 class="dialog-title"></h2>
         <p class="dialog-text"></p>
         <div class="dialog-progress"></div>
-        <button class="btn primary dialog-button" data-dialog="close" data-nav></button>
+        <div class="dialog-actions">
+          <button class="dialog-replay" data-dialog-replay type="button" aria-label="Повторить озвучку">↻ <span>Повторить</span></button>
+          <button class="btn primary dialog-button" data-dialog="close" data-nav></button>
+        </div>
       </div>
     </div>
   </section>

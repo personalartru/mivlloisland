@@ -23,6 +23,8 @@ import { World } from './world'
 export type Mode = 'attract' | 'playing' | 'talking' | 'paused' | 'ended'
 export type Hint = 'move' | 'look' | 'talk' | 'collect'
 export type DialogAction = 'accept' | 'turnin' | 'close'
+export type DialogLine = 'intro' | 'progress' | 'ready' | 'thanks' | 'done'
+export type DialogVoiceLine = `${QuestId}-${DialogLine}`
 
 export type DialogData = {
   npcId: QuestId
@@ -36,6 +38,7 @@ export type DialogData = {
   status: QuestStatus
   action: DialogAction
   accent: string
+  voiceLine: DialogVoiceLine
 }
 
 export type CompassTarget = {
@@ -357,18 +360,23 @@ export class Game {
     const have = this.journey.inventory[quest.item]
     let text = this.i18n.t(quest.doneKey)
     let action: DialogAction = 'close'
+    let line: DialogLine = 'done'
     if (thanks) {
       text = this.i18n.t(quest.thanksKey)
+      line = 'thanks'
     } else if (status === 'available') {
       text = this.i18n.t(quest.introKey)
       action = 'accept'
+      line = 'intro'
     } else if (status === 'active') {
       const missing = missingFor(this.journey, id)
       if (missing > 0) {
         text = this.i18n.t(quest.progressKey, { n: missing })
+        line = 'progress'
       } else {
         text = this.i18n.t(quest.readyKey)
         action = 'turnin'
+        line = 'ready'
       }
     }
     return {
@@ -383,6 +391,7 @@ export class Game {
       status,
       action,
       accent: quest.accent,
+      voiceLine: `${id}-${line}`,
     }
   }
 
