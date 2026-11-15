@@ -14,8 +14,9 @@ import { Ui, type OnlineEntry } from './ui/ui'
 
 const BOARD_ID = 'friendship-v1'
 const RULES_VERSION = 'v1'
-/** Local dev/preview has no API container; the saved checkpoint Preview exercises the online board. */
-const ONLINE_ENABLED = !import.meta.env.DEV && !['localhost', '127.0.0.1', ''].includes(location.hostname) && location.protocol.startsWith('http')
+/** Local dev has no API; GitHub Pages is explicitly local-only. Checkpoint Preview exercises the online board. */
+const PAGES_LOCAL_ONLY = import.meta.env.VITE_GITHUB_PAGES === 'true'
+const ONLINE_ENABLED = !PAGES_LOCAL_ONLY && !import.meta.env.DEV && !['localhost', '127.0.0.1', ''].includes(location.hostname) && location.protocol.startsWith('http')
 
 async function boot(): Promise<void> {
   const canvas = document.querySelector<HTMLCanvasElement>('#game')!

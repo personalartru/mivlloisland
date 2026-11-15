@@ -43,4 +43,28 @@ const LOCAL = {
   },
 } as const
 
-export const MODEL_URLS = import.meta.env.DEV ? LOCAL : STORAGE
+const PAGES = {
+  player: `${import.meta.env.BASE_URL}models/plyuhik-animated.glb`,
+  npcs: {
+    grandma: `${import.meta.env.BASE_URL}models/npc-grandma.glb`,
+    fairy: `${import.meta.env.BASE_URL}models/npc-fairy.glb`,
+    mushroom: `${import.meta.env.BASE_URL}models/npc-mushroom.glb`,
+    cat: `${import.meta.env.BASE_URL}models/npc-cat.glb`,
+  },
+  items: {
+    berry: `${import.meta.env.BASE_URL}models/item-berry.glb`,
+    crystal: `${import.meta.env.BASE_URL}models/item-crystal.glb`,
+    mushroom: `${import.meta.env.BASE_URL}models/item-mushroom.glb`,
+    star: `${import.meta.env.BASE_URL}models/item-star.glb`,
+  },
+  props: {
+    tree: `${import.meta.env.BASE_URL}models/prop-tree.glb`,
+    cottage: `${import.meta.env.BASE_URL}models/prop-cottage.glb`,
+  },
+} as const
+
+export const MODEL_URLS = import.meta.env.DEV
+  ? LOCAL
+  : import.meta.env.VITE_GITHUB_PAGES === 'true'
+    ? PAGES
+    : STORAGE

@@ -1,7 +1,7 @@
 /**
  * Web Audio mixer with music and SFX buses. Browsers only allow audio after a user gesture, so
- * `unlock()` runs from the first click/key press. Catalog cues stream from local WAV files with
- * synthesized fallbacks for jump/land/talk and for offline loading failures.
+ * `unlock()` runs from the first click/key press. Manus builds use registered Storage WAVs; the
+ * GitHub Pages build uses local static copies. Synthesized cues cover failures and simple actions.
  */
 export type Sfx = 'pickup' | 'jump' | 'land' | 'ui' | 'talk' | 'quest' | 'win'
 
@@ -10,6 +10,11 @@ const AUDIO_URLS = import.meta.env.DEV ? {
   ui: '/assets/audio/ui/ready-click-01.wav',
   quest: '/assets/audio/magic/chimes.wav',
   win: '/assets/audio/magic/success.wav',
+} : import.meta.env.VITE_GITHUB_PAGES === 'true' ? {
+  pickup: `${import.meta.env.BASE_URL}audio/magic/spell.wav`,
+  ui: `${import.meta.env.BASE_URL}audio/ui/ready-click-01.wav`,
+  quest: `${import.meta.env.BASE_URL}audio/magic/chimes.wav`,
+  win: `${import.meta.env.BASE_URL}audio/magic/success.wav`,
 } : {
   pickup: '/manus-storage/game/sha256/0eb8fcc00ec39b6c612c36d0b2f996d2b3ceff10d8b84713726160afefd18ea3.wav',
   ui: '/manus-storage/game/sha256/e62b419e13f681d402640455336ab383d2b2c4a187954b1dd42fb62a79a81827.wav',
