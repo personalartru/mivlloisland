@@ -3,8 +3,8 @@ import { basename, dirname, join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 
 const root = process.cwd()
-const pagesBase = '/plyuhik/'
-const pagesOrigin = 'https://personalartru.github.io/plyuhik'
+const pagesBase = '/murzik/'
+const pagesOrigin = 'https://personalartru.github.io/murzik'
 const manuscriptOrigin = 'https://plyuhik-tznvprwr.manus.game'
 const packageManager = process.env.npm_execpath
 if (!packageManager) throw new Error('Run the GitHub Pages build through the package.json script')
