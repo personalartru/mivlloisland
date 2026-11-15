@@ -1,6 +1,161 @@
 {
   "version": 2,
-  "groups": {},
+  "groups": {
+    "island-collectibles": {
+      "name": "Находки острова",
+      "order": 20
+    },
+    "island-friends": {
+      "name": "Друзья острова",
+      "order": 10
+    },
+    "island-landmarks": {
+      "name": "Знаковые места",
+      "order": 30
+    },
+    "island-sounds": {
+      "name": "Звуки приключения",
+      "order": 40
+    },
+    "sharing-art": {
+      "name": "Оформление игры",
+      "order": 50
+    }
+  },
   "bundles": {},
-  "assets": {}
+  "assets": {
+    "assets/audio/magic/chimes.wav": {
+      "path": "/manus-storage/game/sha256/3d3bde1cc09266e52899c61cc70138d5ff71ebc83a39635717a10029fdc536f4.wav",
+      "sha256": "sha256:3d3bde1cc09266e52899c61cc70138d5ff71ebc83a39635717a10029fdc536f4",
+      "size": 93974,
+      "assetType": "audio",
+      "groupId": "island-sounds"
+    },
+    "assets/audio/magic/spell.wav": {
+      "path": "/manus-storage/game/sha256/0eb8fcc00ec39b6c612c36d0b2f996d2b3ceff10d8b84713726160afefd18ea3.wav",
+      "sha256": "sha256:0eb8fcc00ec39b6c612c36d0b2f996d2b3ceff10d8b84713726160afefd18ea3",
+      "size": 91528,
+      "assetType": "audio",
+      "groupId": "island-sounds"
+    },
+    "assets/audio/magic/success.wav": {
+      "path": "/manus-storage/game/sha256/5399c4f5ff1435df6d9da3990fbebd09ebd6769472bb50b94ae5fc5ef84f7084.wav",
+      "sha256": "sha256:5399c4f5ff1435df6d9da3990fbebd09ebd6769472bb50b94ae5fc5ef84f7084",
+      "size": 70418,
+      "assetType": "audio",
+      "groupId": "island-sounds"
+    },
+    "assets/audio/ui/ready-click-01.wav": {
+      "path": "/manus-storage/game/sha256/e62b419e13f681d402640455336ab383d2b2c4a187954b1dd42fb62a79a81827.wav",
+      "sha256": "sha256:e62b419e13f681d402640455336ab383d2b2c4a187954b1dd42fb62a79a81827",
+      "size": 8864,
+      "assetType": "audio",
+      "groupId": "island-sounds"
+    },
+    "assets/models/item-berry.glb": {
+      "path": "/manus-storage/game/sha256/2d390176db3987f2498de1713511ffb15a42ce3a0e8f14e3150849b74e188200.glb",
+      "sha256": "sha256:2d390176db3987f2498de1713511ffb15a42ce3a0e8f14e3150849b74e188200",
+      "size": 737068,
+      "assetType": "model",
+      "groupId": "island-collectibles"
+    },
+    "assets/models/item-crystal.glb": {
+      "path": "/manus-storage/game/sha256/be23be4323bdabf530a4f07e714a7e1a8209ea0811f3ef04da9392c6cae5a092.glb",
+      "sha256": "sha256:be23be4323bdabf530a4f07e714a7e1a8209ea0811f3ef04da9392c6cae5a092",
+      "size": 666124,
+      "assetType": "model",
+      "groupId": "island-collectibles"
+    },
+    "assets/models/item-mushroom.glb": {
+      "path": "/manus-storage/game/sha256/d110b21f3f7d7c4bedecadc699f9050aa24b7c9ba6658296add0851ad5bdca29.glb",
+      "sha256": "sha256:d110b21f3f7d7c4bedecadc699f9050aa24b7c9ba6658296add0851ad5bdca29",
+      "size": 672852,
+      "assetType": "model",
+      "groupId": "island-collectibles"
+    },
+    "assets/models/item-star.glb": {
+      "path": "/manus-storage/game/sha256/478db9d318616e8ac4d185df6a99060000b9ad9ae950cbe98fe0e6317a172e42.glb",
+      "sha256": "sha256:478db9d318616e8ac4d185df6a99060000b9ad9ae950cbe98fe0e6317a172e42",
+      "size": 341204,
+      "assetType": "model",
+      "groupId": "island-collectibles"
+    },
+    "assets/models/npc-cat.glb": {
+      "path": "/manus-storage/game/sha256/bfbde94c377ed7ecbae87a546e3fcf5a2351d45efaf7b5859bf35a3361ce745e.glb",
+      "sha256": "sha256:bfbde94c377ed7ecbae87a546e3fcf5a2351d45efaf7b5859bf35a3361ce745e",
+      "size": 937320,
+      "assetType": "model",
+      "groupId": "island-friends"
+    },
+    "assets/models/npc-fairy.glb": {
+      "path": "/manus-storage/game/sha256/d5e3d85a20d0cd89e94d055349dbb565ac307e558ac05d957093195fd0be96eb.glb",
+      "sha256": "sha256:d5e3d85a20d0cd89e94d055349dbb565ac307e558ac05d957093195fd0be96eb",
+      "size": 691632,
+      "assetType": "model",
+      "groupId": "island-friends"
+    },
+    "assets/models/npc-grandma.glb": {
+      "path": "/manus-storage/game/sha256/2788c098b658d18d85b2cf31683b27eb9fd2b47b1ce011eb06714da86d3beded.glb",
+      "sha256": "sha256:2788c098b658d18d85b2cf31683b27eb9fd2b47b1ce011eb06714da86d3beded",
+      "size": 678652,
+      "assetType": "model",
+      "groupId": "island-friends"
+    },
+    "assets/models/npc-mushroom.glb": {
+      "path": "/manus-storage/game/sha256/f286ccfb80b0dbed35022426c089c78ed15b3fa1d2c02a1a018d4003057bbbab.glb",
+      "sha256": "sha256:f286ccfb80b0dbed35022426c089c78ed15b3fa1d2c02a1a018d4003057bbbab",
+      "size": 837032,
+      "assetType": "model",
+      "groupId": "island-friends"
+    },
+    "assets/models/plyuhik-animated.glb": {
+      "path": "/manus-storage/game/sha256/0f54068fbceae82d576c0b907cce7fdafef555fb0e79ac1534bc2160f0566b15.glb",
+      "sha256": "sha256:0f54068fbceae82d576c0b907cce7fdafef555fb0e79ac1534bc2160f0566b15",
+      "size": 1170844,
+      "assetType": "model",
+      "groupId": "island-friends"
+    },
+    "assets/models/plyuhik-rigged.glb": {
+      "path": "/manus-storage/game/sha256/e5fe0a24ca15c8c4f61225946abe28ea89f1570f93d97519bf8c58196f17b434.glb",
+      "sha256": "sha256:e5fe0a24ca15c8c4f61225946abe28ea89f1570f93d97519bf8c58196f17b434",
+      "size": 915448,
+      "assetType": "model",
+      "groupId": "island-friends"
+    },
+    "assets/models/plyuhik.glb": {
+      "path": "/manus-storage/game/sha256/bfa34c48726cc7b86ff6d3d52a5b6b975fba08583cca90668d574f08c1c330b0.glb",
+      "sha256": "sha256:bfa34c48726cc7b86ff6d3d52a5b6b975fba08583cca90668d574f08c1c330b0",
+      "size": 865076,
+      "assetType": "model",
+      "groupId": "island-friends"
+    },
+    "assets/models/prop-cottage.glb": {
+      "path": "/manus-storage/game/sha256/1c9259cc1daaa45df2761e708707baa7e7f21ecdf4d6c8de6fc2de0c5c1159e6.glb",
+      "sha256": "sha256:1c9259cc1daaa45df2761e708707baa7e7f21ecdf4d6c8de6fc2de0c5c1159e6",
+      "size": 757216,
+      "assetType": "model",
+      "groupId": "island-landmarks"
+    },
+    "assets/models/prop-tree.glb": {
+      "path": "/manus-storage/game/sha256/db1d1d5fba14ca5b501559e3e569cd88e5272540a0597f14c6dd0fc691a6ecf4.glb",
+      "sha256": "sha256:db1d1d5fba14ca5b501559e3e569cd88e5272540a0597f14c6dd0fc691a6ecf4",
+      "size": 1126748,
+      "assetType": "model",
+      "groupId": "island-landmarks"
+    },
+    "assets/share/favicon.png": {
+      "path": "/manus-storage/game/sha256/c2c00c4dd036898263726a0f8545838685b983090932cf684d1aa932844277bd.png",
+      "sha256": "sha256:c2c00c4dd036898263726a0f8545838685b983090932cf684d1aa932844277bd",
+      "size": 88001,
+      "assetType": "image",
+      "groupId": "sharing-art"
+    },
+    "assets/share/og.png": {
+      "path": "/manus-storage/game/sha256/0c4d389a8ee3bf1caa0229c667dd3dd1c27af63fe5c17042425af351bd728370.png",
+      "sha256": "sha256:0c4d389a8ee3bf1caa0229c667dd3dd1c27af63fe5c17042425af351bd728370",
+      "size": 1054951,
+      "assetType": "image",
+      "groupId": "sharing-art"
+    }
+  }
 }

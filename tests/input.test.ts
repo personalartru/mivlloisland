@@ -51,11 +51,10 @@ describe('controller input', () => {
     })
   }
 
-  it('recognizes each physical dash press even when another dash binding is held', () => {
+  it('recognizes the Y interact button once per press', () => {
     const p = pads[0]!
-    button(p, 5, true); input.update(); expect(input.consume('dash')).toBe(true)
-    button(p, 2, true); input.update(); expect(input.consume('dash')).toBe(true)
-    input.update(); expect(input.consume('dash')).toBe(false); expect(input.held('dash')).toBe(true)
+    button(p, 3, true); input.update(); expect(input.consume('interact')).toBe(true)
+    input.update(); expect(input.consume('interact')).toBe(false); expect(input.held('interact')).toBe(true)
   })
   it('clears previous pad buttons after disconnect so reconnect presses work', () => {
     button(pads[0]!, 0, true); input.update(); expect(input.consume('confirm')).toBe(true)

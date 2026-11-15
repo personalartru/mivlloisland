@@ -1,69 +1,104 @@
 import * as THREE from 'three'
 import type { Audio } from '../engine/audio'
+import type { I18n } from '../engine/i18n'
 import type { Input } from '../engine/input'
 import { Physics, RAPIER } from '../engine/physics'
 import type { Renderer } from '../engine/renderer'
 import type { Quality } from '../engine/save'
 import { FollowCamera } from './camera'
-import { Collectibles } from './collectibles'
 import { CONFIG } from './config'
-import { tuning } from './tuning'
-import { Drones } from './drones'
 import { Effects } from './fx'
+import { Items } from './items'
+import type { ModelPack } from './models'
+import { Npcs, type NpcInfo } from './npcs'
 import { Player, type PlayerEvent } from './player'
-import { collect, createRun, damage, tick, type RunState } from './rules'
+import { ITEMS, QUESTS, questById, type ItemKind, type QuestId } from './quests'
+import {
+  acceptQuest, completedCount, createJourney, missingFor, pickup, tick, turnIn,
+  type JourneyState, type QuestStatus,
+} from './rules'
+import { tuning } from './tuning'
 import { World } from './world'
 
-export type Mode = 'attract' | 'playing' | 'paused' | 'ended'
-export type Hint = 'move' | 'look' | 'jump' | 'dash' | 'cores'
-export type Compass = { angle: number; distance: number; rise: number }
+export type Mode = 'attract' | 'playing' | 'talking' | 'paused' | 'ended'
+export type Hint = 'move' | 'look' | 'talk' | 'collect'
+export type DialogAction = 'accept' | 'turnin' | 'close'
+
+export type DialogData = {
+  npcId: QuestId
+  name: string
+  title: string
+  text: string
+  item: ItemKind
+  itemName: string
+  have: number
+  need: number
+  status: QuestStatus
+  action: DialogAction
+  accent: string
+}
+
+export type CompassTarget = {
+  angle: number
+  distance: number
+  kind: 'item' | 'npc'
+  item?: ItemKind
+  npc?: QuestId
+}
 
 export type GameHooks = {
-  popup(text: string, screen: { x: number; y: number }, kind: 'score' | 'hurt'): void
-  hurt(): void
+  popup(text: string, screen: { x: number; y: number }, kind: 'item' | 'quest'): void
   hint(hint: Hint | null): void
-  /** The first-run tutorial reached its last step. */
+  dialog(data: DialogData): void
+  dialogClose(): void
+  questDone(id: QuestId): void
   tutorialDone(): void
-  end(run: RunState): void
+  end(journey: JourneyState): void
 }
 
 /**
- * One playable scene: owns world, physics, player, camera, enemies and the run rules, and
- * translates simulation events into audio, particles and UI hooks. `main.ts` drives it from the
- * fixed-step loop; the UI never reaches inside.
+ * One playable island: owns the world, player, residents, collectibles and journey rules, and
+ * translates simulation events into audio, particles and UI hooks. There is no timer, damage or
+ * losing: the only end state is the celebration after every resident has been helped.
  */
 export class Game {
   mode: Mode = 'attract'
-  run: RunState
+  journey: JourneyState
   reducedMotion = false
   private readonly physics: Physics
   private readonly world: World
   private readonly player: Player
   private readonly cam: FollowCamera
-  private readonly cores: Collectibles
-  private readonly drones: Drones
+  private readonly items: Items
+  private readonly npcs: Npcs
   private readonly fx = new Effects()
   private simTime = 0
   private time = 0
   private tutorial: Hint | null = null
   private tutorialLook = 0
   private tutorialStart = new THREE.Vector3()
+  private dialogNpc: QuestId | null = null
+  private finishTimer = 0
+  private savedYaw = 0
+  private savedPitch = 0.32
   private readonly down = new RAPIER.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 })
 
   constructor(
     private readonly renderer: Renderer,
     private readonly input: Input,
     private readonly audio: Audio,
+    private readonly i18n: I18n,
     private readonly hooks: GameHooks,
+    models: ModelPack,
   ) {
     this.physics = new Physics(CONFIG.player.gravity)
-    this.world = new World(this.physics, renderer.shadowMapSize)
-    this.player = new Player(this.physics, this.world.spawn, this.world.movers)
+    this.world = new World(this.physics, renderer.shadowMapSize, models.props)
+    this.player = new Player(this.physics, this.world.spawn, models.player)
     this.cam = new FollowCamera(this.physics, this.player.collider)
-    this.cores = new Collectibles(this.world.coreSpots)
-    this.drones = new Drones(this.physics, this.world.droneRoutes)
-    this.world.scene.add(this.player.root, this.player.shadowMesh, this.cores.group, this.drones.group, this.fx.mesh)
-    this.run = createRun(this.cores.total)
+    this.items = new Items(this.world.itemSpots, models.items)
+    this.npcs = new Npcs(this.physics, models.npcs)
+    this.world.scene.add(this.player.root, this.player.shadowMesh, this.items.group, this.npcs.group, this.fx.mesh)
+    this.journey = createJourney()
     this.cam.reset(this.world.spawn, 0.6)
   }
 
@@ -71,17 +106,20 @@ export class Game {
     return this.cam.camera
   }
 
-  /** Begin (or restart) a run. `tutorial` shows first-time control hints. */
+  /** Begin (or restart) a journey. `tutorial` shows first-time control hints. */
   start(tutorial: boolean): void {
     tuning.activate('run')
-    this.cores.reset()
+    this.items.reset()
     this.fx.clear()
+    this.world.setLanterns(0)
     this.player.teleport(this.world.spawn)
     this.player.facing = 0
-    this.cam.pitch = 0.42
+    this.cam.pitch = 0.32
     this.cam.reset(this.world.spawn, 0)
-    this.run = { ...createRun(this.cores.total), unranked: tuning.unranked }
+    this.journey = { ...createJourney(), unranked: tuning.unranked }
     this.mode = 'playing'
+    this.dialogNpc = null
+    this.finishTimer = 0
     this.input.endFrame()
     this.input.takeLook()
     this.tutorial = tutorial ? 'move' : null
@@ -91,18 +129,19 @@ export class Game {
   }
 
   pause(): void {
-    if (this.mode === 'playing') this.mode = 'paused'
+    if (this.mode === 'playing' || this.mode === 'talking') this.mode = 'paused'
   }
 
   resume(): void {
     if (this.mode !== 'paused') return
-    this.mode = 'playing'
+    this.mode = this.dialogNpc ? 'talking' : 'playing'
     this.input.endFrame()
     this.input.takeLook()
   }
 
   toTitle(): void {
     this.mode = 'attract'
+    this.dialogNpc = null
     this.hooks.hint(null)
   }
 
@@ -113,7 +152,6 @@ export class Game {
     shadow.map?.dispose()
     shadow.map = null
     shadow.mapSize.set(size, size)
-    // Shadow support is compiled into shaders: recompile after toggling shadows at runtime.
     this.world.scene.traverse(obj => {
       const material = (obj as THREE.Mesh).material
       for (const m of Array.isArray(material) ? material : material ? [material] : []) m.needsUpdate = true
@@ -122,77 +160,62 @@ export class Game {
 
   step(dt: number): void {
     this.simTime += dt
-    // Presses are always consumed so a jump pressed in a menu never fires on resume.
     const jumpPressed = this.input.consume('jump')
-    const dashPressed = this.input.consume('dash')
+    const interactPressed = this.input.consume('interact')
     const playing = this.mode === 'playing'
-    const rage = playing && this.run.timeLeft <= CONFIG.drones.rageAt
 
-    this.world.stepMovers(this.simTime)
-    const events: PlayerEvent[] = []
     if (playing) {
+      const events: PlayerEvent[] = []
       this.player.step(
         dt,
-        {
-          moveX: this.input.move.x,
-          moveY: this.input.move.y,
-          sprint: this.input.held('sprint'),
-          jumpPressed,
-          jumpHeld: this.input.held('jump'),
-          dashPressed,
-        },
+        { moveX: this.input.move.x, moveY: this.input.move.y, sprint: this.input.held('sprint'), jumpPressed, jumpHeld: this.input.held('jump') },
         this.cam.yaw,
         events,
       )
-    }
-    this.drones.step(dt, rage)
-    this.physics.step(dt)
-    if (!playing) return
-    this.run.unranked ||= tuning.unranked
+      this.physics.step(dt)
+      this.journey = tick(this.journey, dt)
+      this.journey.unranked ||= tuning.unranked
+      const pos = this.player.position
+      for (const event of events) this.onPlayerEvent(event, pos)
 
-    const pos = this.player.position
-    for (const e of events) this.onPlayerEvent(e, pos)
-
-    for (const at of this.cores.collect(pos, CONFIG.player.radius + 0.75)) {
-      const result = collect(this.run)
-      this.run = result.state
-      this.audio.play('pickup')
-      this.fx.burst(at, '#ffd35c', 26, 7)
-      const combo = this.run.combo > 1 ? `  ×${this.run.combo}` : ''
-      this.hooks.popup(`+${result.points}${combo}`, this.project(at), 'score')
-      if (this.tutorial === 'cores') {
-        this.advanceTutorial(null)
-        this.hooks.tutorialDone()
+      for (const got of this.items.collect(pos, CONFIG.quest.pickupRadius)) {
+        this.journey = pickup(this.journey, got.kind).state
+        this.audio.play('pickup')
+        this.fx.burst(got.at, ITEMS[got.kind].color, 24, 6)
+        this.hooks.popup(`+1 ${this.i18n.t(ITEMS[got.kind].nameKey)}`, this.project(got.at.clone().setY(got.at.y + 0.6)), 'item')
+        if (this.tutorial === 'collect') {
+          this.advanceTutorial(null)
+          this.hooks.tutorialDone()
+        }
       }
-    }
 
-    const hitFrom = this.drones.hits(pos, CONFIG.player.radius)[0]
-    if (hitFrom) {
-      const result = damage(this.run)
-      if (result.hurt) {
-        this.run = result.state
-        this.player.knockback(hitFrom)
-        this.onHurt(pos)
-      }
-    }
-
-    if (pos.y < CONFIG.run.killY) {
-      this.run = damage(this.run, true).state
-      this.onHurt(pos)
-      if (this.run.phase === 'playing') {
+      if (pos.y < -8) {
+        // A soft rescue, never a punishment: the island has an invisible hedge, but a fall is safe.
         this.player.teleport(this.player.safe)
         this.cam.reset(this.player.safe)
       }
+
+      const near = this.npcs.nearest(pos, CONFIG.quest.talkRadius)
+      if (interactPressed && near) this.openDialog(near.id)
+
+      if (this.tutorial === 'move' && pos.distanceTo(this.tutorialStart) > 2) {
+        this.advanceTutorial(this.input.method === 'touch' ? 'talk' : 'look')
+      }
+    } else if (this.mode === 'talking') {
+      this.physics.step(dt)
+      this.journey = tick(this.journey, dt)
+      this.journey.unranked ||= tuning.unranked
+    } else if (this.mode === 'ended') {
+      this.physics.step(dt)
     }
 
-    this.run = tick(this.run, dt)
-    this.updateTutorial(pos)
-    if (this.run.phase !== 'playing') {
-      this.mode = 'ended'
-      this.hooks.hint(null)
-      this.audio.play(this.run.phase === 'won' ? 'win' : 'lose')
-      if (this.run.phase === 'won') this.fx.burst(pos.clone().setY(pos.y + 1), '#7ef9ff', 60, 10)
-      this.hooks.end(this.run)
+    if (this.finishTimer > 0) {
+      this.finishTimer -= dt
+      if (this.finishTimer <= 0) {
+        this.mode = 'ended'
+        this.hooks.hint(null)
+        this.hooks.end(this.journey)
+      }
     }
   }
 
@@ -200,75 +223,178 @@ export class Game {
     this.time += frameSeconds
     this.physics.sync(alpha)
     const target = this.player.root.position
+    const focus = this.mode === 'talking' && this.dialogNpc
+      ? target.clone().add(this.npcs.positionOf(this.dialogNpc)).multiplyScalar(0.5).setY(1.15)
+      : target
     if (this.mode === 'attract') {
-      // Slow establishing orbit around the archipelago; the title menu sits on the left third.
-      const t = this.time * 0.045 + 0.9
+      const t = this.time * 0.05 + 0.8
       const cam = this.cam.camera
-      cam.position.set(Math.sin(t) * 34, 15 + Math.sin(this.time * 0.2) * 1.5, -8 + Math.cos(t) * 34)
-      cam.lookAt(Math.sin(t + 1.9) * 6, 3, -8 + Math.cos(t + 1.9) * 6)
+      cam.position.set(Math.sin(t) * 42, 18 + Math.sin(this.time * 0.2) * 1.5, Math.cos(t) * 42)
+      cam.lookAt(0, 4, 4)
     } else {
       const look = this.mode === 'playing' ? this.input.takeLook() : { x: 0, y: 0 }
       if (this.mode === 'playing' && this.tutorial === 'look') {
-        // Measure total movement, so slow input and high refresh rates can complete the hint.
         this.tutorialLook += Math.abs(look.x) + Math.abs(look.y)
-        if (this.tutorialLook > 0.05) this.advanceTutorial('jump')
+        if (this.tutorialLook > 0.05) this.advanceTutorial('talk')
       }
-      this.cam.update(target, look, frameSeconds, false, this.reducedMotion)
+      this.cam.update(focus, look, frameSeconds, false, this.reducedMotion)
     }
-    this.player.animate(frameSeconds, this.time, this.run.invulnerable > 0 && this.mode === 'playing', this.groundBelow(target))
-    this.cores.animate(frameSeconds)
-    this.drones.animate(frameSeconds, this.mode === 'playing' && this.run.timeLeft <= CONFIG.drones.rageAt)
+    this.player.animate(frameSeconds, this.groundBelow(target))
+    this.items.animate(frameSeconds)
+    this.npcs.update(this.journey, target, frameSeconds, this.time)
     this.fx.update(frameSeconds)
     this.world.update(frameSeconds, target)
     this.renderer.render(this.world.scene, this.cam.camera)
   }
 
-  /** Direction to the nearest remaining core relative to the camera (HUD compass). */
-  compass(): Compass | null {
+  /** Direction to the nearest current objective relative to the camera (HUD compass). */
+  compass(): CompassTarget | null {
     const pos = this.player.root.position
-    let best: THREE.Vector3 | undefined
-    let bestD = Infinity
-    for (const c of this.cores.remaining()) {
-      const d = c.distanceToSquared(pos)
-      if (d < bestD) {
-        bestD = d
-        best = c
+    const active = QUESTS.filter(q => this.journey.quests[q.id] === 'active')
+    let target: THREE.Vector3 | undefined
+    let kind: 'item' | 'npc' = 'item'
+    let item: ItemKind | undefined
+    let npc: QuestId | undefined
+
+    const needing = active.find(q => missingFor(this.journey, q.id) > 0)
+    if (needing) {
+      const spot = this.items.nearest(needing.item, pos)
+      if (spot) {
+        target = spot
+        item = needing.item
       }
     }
-    if (!best) return null
-    const toCore = Math.atan2(-(best.x - pos.x), -(best.z - pos.z))
-    let angle = toCore - this.cam.yaw
+    if (!target) {
+      const ready = active.filter(q => missingFor(this.journey, q.id) === 0)
+      const pool = ready.length > 0 ? ready : QUESTS.filter(q => this.journey.quests[q.id] === 'available')
+      let best = Infinity
+      for (const quest of pool) {
+        const p = this.npcs.positionOf(quest.id)
+        const d = p.distanceToSquared(pos)
+        if (d < best) {
+          best = d
+          target = p
+          kind = 'npc'
+          npc = quest.id
+        }
+      }
+    }
+    if (!target) return null
+    const dx = target.x - pos.x
+    const dz = target.z - pos.z
+    const toTarget = Math.atan2(-dx, -dz)
+    let angle = toTarget - this.cam.yaw
     angle = Math.atan2(Math.sin(angle), Math.cos(angle))
-    return { angle, distance: Math.sqrt(bestD), rise: best.y - pos.y }
+    return { angle, distance: Math.hypot(dx, dz), kind, item, npc }
   }
 
-  private onPlayerEvent(e: PlayerEvent, pos: THREE.Vector3): void {
-    const feet = pos.clone().setY(pos.y - CONFIG.player.halfHeight - CONFIG.player.radius)
-    if (e.type === 'jump') {
-      this.audio.play('jump')
-      this.fx.puff(feet, 0.3)
-      if (this.tutorial === 'jump') this.advanceTutorial('dash')
-    } else if (e.type === 'land') {
-      this.audio.play('land')
-      this.fx.puff(feet, e.impact)
-      if (e.impact > 0.5) this.cam.addShake(e.impact * 0.5)
-    } else if (e.type === 'dash') {
-      this.audio.play('dash')
-      this.fx.burst(pos, '#7ef9ff', 10, 3)
-      if (this.tutorial === 'dash') this.advanceTutorial('cores')
+  /** Resident close enough to talk to, for the interaction prompt. */
+  get interactTarget(): NpcInfo | null {
+    if (this.mode !== 'playing') return null
+    return this.npcs.nearest(this.player.position, CONFIG.quest.talkRadius)
+  }
+
+  dialogAction(action: DialogAction): void {
+    const id = this.dialogNpc
+    if (!id) return
+    if (action === 'accept') {
+      this.journey = acceptQuest(this.journey, id).state
+      this.audio.play('ui')
+      this.hooks.dialog(this.dialogData(id, false))
+      return
+    }
+    if (action === 'turnin') {
+      const result = turnIn(this.journey, id)
+      if (result.completed) {
+        this.journey = result.state
+        const quest = questById.get(id)!
+        const at = this.npcs.positionOf(id).setY(1)
+        this.audio.play('quest')
+        this.fx.burst(at, quest.accent, 42, 8)
+        this.hooks.questDone(id)
+        this.world.setLanterns(completedCount(this.journey))
+        if (this.journey.phase === 'won') this.finishTimer = 2.2
+        this.hooks.dialog(this.dialogData(id, true))
+      }
+      return
+    }
+    this.closeDialog()
+  }
+
+  private openDialog(id: QuestId): void {
+    this.mode = 'talking'
+    this.dialogNpc = id
+    this.savedYaw = this.cam.yaw
+    this.savedPitch = this.cam.pitch
+    const npc = this.npcs.positionOf(id)
+    this.cam.yaw = Math.atan2(this.player.position.x - npc.x, this.player.position.z - npc.z) + 0.5
+    this.cam.pitch = 0.18
+    this.player.velocity.set(0, 0, 0)
+    this.input.endFrame()
+    this.input.takeLook()
+    this.input.unlockPointer()
+    this.audio.play('talk')
+    if (this.tutorial === 'talk') this.advanceTutorial('collect')
+    this.hooks.hint(null)
+    this.hooks.dialog(this.dialogData(id, false))
+  }
+
+  private closeDialog(): void {
+    this.hooks.dialogClose()
+    this.dialogNpc = null
+    this.mode = 'playing'
+    this.cam.yaw = this.savedYaw
+    this.cam.pitch = this.savedPitch
+    if (this.tutorial === 'collect') this.hooks.hint('collect')
+    this.input.lockPointer()
+    this.input.endFrame()
+    this.input.takeLook()
+  }
+
+  private dialogData(id: QuestId, thanks: boolean): DialogData {
+    const quest = questById.get(id)!
+    const status = this.journey.quests[id]
+    const have = this.journey.inventory[quest.item]
+    let text = this.i18n.t(quest.doneKey)
+    let action: DialogAction = 'close'
+    if (thanks) {
+      text = this.i18n.t(quest.thanksKey)
+    } else if (status === 'available') {
+      text = this.i18n.t(quest.introKey)
+      action = 'accept'
+    } else if (status === 'active') {
+      const missing = missingFor(this.journey, id)
+      if (missing > 0) {
+        text = this.i18n.t(quest.progressKey, { n: missing })
+      } else {
+        text = this.i18n.t(quest.readyKey)
+        action = 'turnin'
+      }
+    }
+    return {
+      npcId: id,
+      name: this.i18n.t(quest.nameKey),
+      title: this.i18n.t(quest.titleKey),
+      text,
+      item: quest.item,
+      itemName: this.i18n.t(ITEMS[quest.item].nameKey),
+      have,
+      need: quest.need,
+      status,
+      action,
+      accent: quest.accent,
     }
   }
 
-  private onHurt(pos: THREE.Vector3): void {
-    this.audio.play('hurt')
-    this.cam.addShake(0.8)
-    this.fx.burst(pos, '#ff4d6d', 30, 8)
-    this.hooks.hurt()
-    this.hooks.popup(`-1`, this.project(pos.clone().setY(pos.y + 1)), 'hurt')
-  }
-
-  private updateTutorial(pos: THREE.Vector3): void {
-    if (this.tutorial === 'move' && pos.distanceTo(this.tutorialStart) > 2.5) this.advanceTutorial(this.input.method === 'touch' ? 'jump' : 'look')
+  private onPlayerEvent(event: PlayerEvent, pos: THREE.Vector3): void {
+    const feet = pos.clone().setY(pos.y - CONFIG.player.halfHeight - CONFIG.player.radius)
+    if (event.type === 'jump') {
+      this.audio.play('jump')
+      this.fx.puff(feet, 0.3)
+    } else if (event.type === 'land') {
+      this.audio.play('land')
+      this.fx.puff(feet, event.impact)
+    }
   }
 
   private advanceTutorial(next: Hint | null): void {
@@ -287,5 +413,10 @@ export class Game {
     const v = world.clone().project(this.cam.camera)
     const canvas = this.renderer.canvas
     return { x: ((v.x + 1) / 2) * canvas.clientWidth, y: ((1 - v.y) / 2) * canvas.clientHeight }
+  }
+
+  /** Exposed for the smoke test: a resident model's anchor position. */
+  npcPosition(id: QuestId): THREE.Vector3 {
+    return this.npcs.positionOf(id)
   }
 }

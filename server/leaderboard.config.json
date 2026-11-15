@@ -1,0 +1,9 @@
+{
+  "identity": "guest",
+  "boards": [
+    {
+      "id": "friendship-v1",
+      "rulesVersion": "v1"
+    }
+  ]
+}

@@ -1,27 +1,36 @@
-import { describe, expect, it } from 'vitest'
-import en from '../src/i18n/en.json'
-import zh from '../src/i18n/zh-CN.json'
-import { detectLocale, resolveLocale } from '../src/engine/i18n'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import ru from '../src/i18n/ru.json'
+import { DICTIONARY_KEYS, I18n, detectLocale, resolveLocale } from '../src/engine/i18n'
+
+afterEach(() => vi.unstubAllGlobals())
 
 describe('i18n', () => {
-  it('detects Chinese browsers and defaults to English', () => {
-    expect(detectLocale(['zh-CN', 'en'])).toBe('zh-CN')
-    expect(detectLocale(['zh-TW'])).toBe('zh-CN')
-    expect(detectLocale(['ZH'])).toBe('zh-CN')
-    expect(detectLocale(['en-US', 'zh-CN'])).toBe('en')
-    expect(detectLocale([])).toBe('en')
-    expect(detectLocale(undefined)).toBe('en')
+  it('never follows the browser and always ships Russian', () => {
+    expect(detectLocale()).toBe('ru')
+    expect(resolveLocale()).toBe('ru')
   })
 
-  it('lets a saved choice win over detection', () => {
-    expect(resolveLocale('en', ['zh-CN'])).toBe('en')
-    expect(resolveLocale('zh-CN', ['en-US'])).toBe('zh-CN')
-    expect(resolveLocale('', ['zh-CN'])).toBe('zh-CN')
+  it('contains complete, non-empty Russian strings', () => {
+    expect(DICTIONARY_KEYS.ru.sort()).toEqual(Object.keys(ru).sort())
+    expect(Object.keys(ru).length).toBeGreaterThan(100)
+    for (const [key, value] of Object.entries(ru)) {
+      expect(value.trim(), key).not.toBe('')
+      expect(value, key).not.toMatch(/[A-Za-z]{4,} [A-Za-z]{4,}/)
+    }
   })
 
-  it('has the same keys and placeholders in every language', () => {
-    expect(Object.keys(zh).sort()).toEqual(Object.keys(en).sort())
-    const vars = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort()
-    for (const [key, value] of Object.entries(en)) expect(vars((zh as Record<string, string>)[key]), key).toEqual(vars(value))
+  it('labels the public leaderboard name as a nickname and warns against personal details', () => {
+    expect(ru['menu.nameLabel']).toBe('Игровой ник')
+    expect(ru['menu.namePrivacy']).toContain('виден другим игрокам')
+    expect(ru['menu.namePrivacy']).toMatch(/настоящее имя.*телефон.*адрес/)
+  })
+
+  it('interpolates placeholders and exposes missing keys instead of hiding them', () => {
+    vi.stubGlobal('document', { documentElement: { lang: '' } })
+    const i18n = new I18n('ru')
+    expect(i18n.t('hud.compassItem', { item: 'земляника', m: 4 })).toBe('земляника: 4 м')
+    expect(i18n.t('quest.grandma.progress', { n: 2 })).toContain('2')
+    expect(i18n.t('missing.key')).toBe('missing.key')
+    expect(document.documentElement.lang).toBe('ru')
   })
 })

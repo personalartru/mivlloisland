@@ -1,51 +1,65 @@
 import type { Audio } from '../engine/audio'
 import type { I18n } from '../engine/i18n'
 import type { Input } from '../engine/input'
-import { insertScore, type Locale, type Quality, type SaveData, type SaveStore } from '../engine/save'
-import { CONFIG } from '../game/config'
-import type { Compass, Hint } from '../game/game'
-import { formatClock, stars, type RunState } from '../game/rules'
+import { insertScore, type Quality, type SaveData, type SaveStore } from '../engine/save'
+import type { CompassTarget, DialogAction, DialogData, Hint } from '../game/game'
+import { ITEMS, ITEM_KINDS, QUESTS, questById, type QuestId } from '../game/quests'
+import { formatDuration, starsOf, type JourneyState } from '../game/rules'
+import type { NpcInfo } from '../game/npcs'
 
-export type Screen = 'boot' | 'title' | 'hud' | 'pause' | 'settings' | 'leaderboard' | 'results'
+export type Screen = 'boot' | 'title' | 'hud' | 'pause' | 'settings' | 'leaderboard' | 'results' | 'dialog'
+
+export type OnlineState = 'pending' | 'saved' | 'error' | 'unranked'
+
+export type OnlineEntry = { rank: number; name: string; score: number; seconds: number | null }
 
 export type UiActions = {
   play(): void
+  pause(): void
   resume(): void
   restart(): void
   quit(): void
   settings(patch: Partial<SaveData>): void
+  dialog(action: DialogAction): void
+  loadLeaderboard(): void
+  retrySubmit(): void
 }
 
 const ICON = {
-  core: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1 21 12 12 23 3 12Z" fill="currentColor"/><path d="M12 1 21 12H3Z" fill="#fff" opacity=".35"/></svg>',
-  cell: '<svg viewBox="0 0 20 30" aria-hidden="true"><rect x="6" y="0" width="8" height="4" rx="1.5" fill="currentColor"/><rect x="1.5" y="4" width="17" height="25" rx="4" fill="none" stroke="currentColor" stroke-width="3"/><rect class="fill" x="5" y="8" width="10" height="17" rx="2" fill="currentColor"/></svg>',
-  star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 3 6.6 7.2.8-5.4 4.9 1.5 7.1L12 17.8 5.7 21.4l1.5-7.1L1.8 9.4 9 8.6Z" fill="currentColor"/></svg>',
-  arrow: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 20 20 12 15 4 20Z" fill="currentColor"/></svg>',
-  pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5" fill="currentColor"/><rect x="14" y="4" width="5" height="16" rx="1.5" fill="currentColor"/></svg>',
+  berry: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21c-4.6 0-7.6-3.3-7.6-7.1 0-3.3 2.2-6.2 5.2-7.2l2.4-.8 2.4.8c3 .9 5.2 3.9 5.2 7.2C19.6 17.7 16.6 21 12 21Z" fill="#ff5a6e"/><path d="M12 6.5c-.8-1.9-2.4-3-4.5-3.2.2 2.2 1.4 3.7 3.3 4.4ZM12 6.5c.8-1.9 2.4-3 4.5-3.2-.2 2.2-1.4 3.7-3.3 4.4Z" fill="#5fc45f"/><g fill="#fff1c9"><circle cx="9" cy="13" r=".8"/><circle cx="14" cy="12" r=".8"/><circle cx="12" cy="17" r=".8"/></g></svg>',
+  crystal: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.8 19 9l-3.3 12.2H8.3L5 9Z" fill="#69d7ff"/><path d="M12 1.8 19 9l-7 2.4Z" fill="#c6f4ff"/><path d="m5 9 7 2.4L8.3 21.2Z" fill="#3eb7e8"/></svg>',
+  mushroom: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.4 13h5.2l-.7 8H10Z" fill="#fff0d4"/><path d="M12 3C6.7 3 2.8 7.3 2.8 12c0 1.2.8 2 2 2h14.4c1.2 0 2-.8 2-2C21.2 7.3 17.3 3 12 3Z" fill="#ff7a55"/><g fill="#fff6e5"><circle cx="8" cy="8.5" r="1.4"/><circle cx="15.8" cy="7.8" r="1.1"/><circle cx="16.8" cy="11" r=".9"/></g></svg>',
+  star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 1.6 3.1 6.5 7.1.9-5.2 4.9 1.4 7L12 17.5 5.6 20.9l1.4-7L1.8 9l7.1-.9Z" fill="#ffd24a" stroke="#fff6cf" stroke-width="1.1"/></svg>',
+  check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12.8 5.2 5.2L20 6.8" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="2" fill="currentColor"/><rect x="14" y="4" width="5" height="16" rx="2" fill="currentColor"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 20 21l-8-5-8 5Z" fill="currentColor"/></svg>',
+  sparkle: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 1.8 2.2 7.2L21.5 12l-7.3 3L12 22.2 9.8 15 2.5 12l7.3-3Z" fill="currentColor"/></svg>',
+  play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4.5 20 12 8 19.5Z" fill="currentColor"/></svg>',
 }
 
-/** Glyphs for control hints, per input method. */
 const GLYPH = {
-  keyboard: { keys: '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>', jump: '<kbd class="wide">Space</kbd>', dash: '<kbd>F</kbd>', select: '<kbd>Enter</kbd>', back: '<kbd>Esc</kbd>' },
-  gamepad: { keys: '<kbd class="round">L</kbd>', stickR: '<kbd class="round">R</kbd>', jump: '<kbd class="round a">A</kbd>', dash: '<kbd class="round x">X</kbd>', select: '<kbd class="round a">A</kbd>', back: '<kbd class="round b">B</kbd>' },
+  keyboard: { move: '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>', look: '<span class="mouse-icon"></span>', jump: '<kbd class="wide">Пробел</kbd>', talk: '<kbd>E</kbd>', collect: '<span class="hint-spark">✦</span>' },
+  gamepad: { move: '<kbd class="round">L</kbd>', look: '<kbd class="round">R</kbd>', jump: '<kbd class="round a">A</kbd>', talk: '<kbd class="round y">Y</kbd>', collect: '<span class="hint-spark">✦</span>' },
+  touch: { move: '', look: '', jump: '', talk: '', collect: '<span class="hint-spark">✦</span>' },
 }
 
-/**
- * DOM game UI: title, HUD, pause, settings, results and leaderboard as HTML/CSS layered over the
- * canvas. Every screen is keyboard-, gamepad- and touch-navigable; text comes from i18n keys and
- * re-renders on language change.
- */
+/** DOM UI: title, HUD, dialogs, pause, settings, results and the honour board. */
 export class Ui {
   screen: Screen = 'boot'
+  lastMethod = ''
+  navRepeat = 0
   private readonly root: HTMLElement
+  private readonly promptEl: HTMLElement
+  private readonly hintEl: HTMLElement
   private readonly stack: Screen[] = []
-  private hudCache = new Map<string, string>()
+  private readonly hudCache = new Map<string, string>()
   private hintKey: Hint | null = null
-  private navRepeat = 0
-  private lastRun?: RunState
+  private lastJourney?: JourneyState
   private savedRank = -1
-  private stormShown = false
-  private lastMethod = ''
+  private bannerTimer = 0
+  private onlineMessage = ''
+  private onlineEntries: OnlineEntry[] | null = null
+  private onlineLoading = false
 
   constructor(
     private readonly i18n: I18n,
@@ -55,54 +69,73 @@ export class Ui {
     private readonly actions: UiActions,
   ) {
     this.root = document.getElementById('ui')!
-    this.root.innerHTML = this.template()
-    this.root.addEventListener('click', e => this.onClick(e))
-    this.root.addEventListener('input', e => this.onInput(e))
-    this.root.addEventListener('focusin', e => {
-      if ((e.target as HTMLElement).matches('.btn, .seg button, .toggle')) this.audio.play('ui')
+    this.root.innerHTML = template()
+    this.promptEl = this.root.querySelector('.prompt')!
+    this.hintEl = this.root.querySelector('.hint')!
+    this.root.addEventListener('click', event => this.onClick(event))
+    this.root.addEventListener('input', event => this.onInput(event))
+    this.root.addEventListener('change', event => this.onInput(event))
+    this.root.addEventListener('focusin', event => {
+      if ((event.target as HTMLElement).matches('.btn, .seg button, .toggle')) this.audio.play('ui')
     })
-    window.addEventListener('keydown', e => this.onKey(e))
-    i18n.onChange(() => this.translate())
+    window.addEventListener('keydown', event => this.onKey(event))
+    i18n.onChange(() => {
+      this.translate()
+      this.refreshSettings()
+      if (this.lastJourney) this.showResults(this.lastJourney, false)
+    })
+    this.lastMethod = input.method
     this.translate()
     this.refreshSettings()
   }
 
-  // ─── screens ────────────────────────────────────────────────────────────
+  // ─── screens ─────────────────────────────────────────────────────────────
 
   show(screen: Screen): void {
     this.stack.length = 0
     this.setScreen(screen)
   }
 
-  /** Open an overlay screen (settings, leaderboard) that returns to the current one on Back. */
   push(screen: Screen): void {
     this.stack.push(this.screen)
     this.setScreen(screen)
   }
 
   back(): void {
-    const prev = this.stack.pop()
-    if (prev) this.setScreen(prev)
+    const previous = this.stack.pop()
+    if (previous) {
+      this.setScreen(previous)
+      return
+    }
+    if (this.screen === 'dialog') this.actions.dialog('close')
     else if (this.screen === 'pause') this.actions.resume()
+    else if (this.screen === 'settings' || this.screen === 'leaderboard') this.setScreen('title')
   }
 
   private setScreen(screen: Screen): void {
     this.screen = screen
+    const fromPause = this.stack.includes('pause')
     for (const el of this.root.querySelectorAll<HTMLElement>('[data-screen]')) {
-      const active = el.dataset.screen === screen || (el.dataset.screen === 'hud' && (screen === 'pause' || screen === 'results' || (screen === 'settings' && this.stack.includes('pause'))))
+      const name = el.dataset.screen as Screen
+      const active = name === screen || (name === 'hud' && (screen === 'pause' || screen === 'dialog' || (screen === 'settings' && fromPause)))
       el.classList.toggle('is-active', active)
       el.setAttribute('aria-hidden', String(!active))
     }
     this.root.dataset.activeScreen = screen
     if (screen === 'title') this.renderBest()
-    if (screen === 'leaderboard') this.renderLeaderboard()
-    if (screen === 'hud') this.stormShown = false
-    // Focus the first control so keyboard and gamepad players can act immediately.
-    requestAnimationFrame(() => {
-      const first = this.navItems()[0]
-      if (first && this.input.method !== 'touch') first.focus({ preventScroll: true })
-      else (document.activeElement as HTMLElement | null)?.blur?.()
-    })
+    if (screen === 'leaderboard') {
+      this.renderLocalBoard()
+      this.renderOnlineBoard()
+      this.actions.loadLeaderboard()
+    }
+    if (screen === 'hud') this.updateHint()
+    if (screen !== 'hud') {
+      requestAnimationFrame(() => {
+        const first = this.navItems()[0]
+        if (first && this.input.method !== 'touch') first.focus({ preventScroll: true })
+        else (document.activeElement as HTMLElement | null)?.blur?.()
+      })
+    }
   }
 
   setBootProgress(progress: number): void {
@@ -110,466 +143,568 @@ export class Ui {
     bar.style.transform = `scaleX(${Math.max(0.04, Math.min(1, progress))})`
   }
 
-  // ─── HUD ────────────────────────────────────────────────────────────────
+  bootError(message: string): void {
+    const retry = this.q<HTMLButtonElement>('.boot-retry')
+    retry.hidden = false
+    const error = this.q<HTMLElement>('.boot-error')
+    error.hidden = false
+    error.textContent = message
+    this.q('.boot-bar').classList.add('is-error')
+    this.q<HTMLElement>('.boot-status').textContent = this.i18n.t('boot.error')
+  }
 
-  updateHud(run: RunState, compass: Compass | null): void {
-    this.set('cores', `${run.collected}<small>/${run.total}</small>`)
-    this.set('score', run.score.toLocaleString(this.i18n.locale))
-    this.set('clock', formatClock(run.timeLeft))
-    const low = run.timeLeft <= CONFIG.drones.rageAt
-    this.q('.hud-clock').classList.toggle('is-low', low)
-    if (low && !this.stormShown && run.phase === 'playing') {
-      this.stormShown = true
-      this.banner(this.i18n.t('hud.storm'))
-    }
-    const cells = this.q('.hud-cells')
-    if (cells.childElementCount !== CONFIG.run.lives) {
-      cells.innerHTML = `<span class="hud-cell">${ICON.cell}</span>`.repeat(CONFIG.run.lives)
-    }
-    for (const [i, cell] of this.qa('.hud-cell').entries()) cell.classList.toggle('is-empty', i >= run.lives)
+  // ─── HUD ─────────────────────────────────────────────────────────────────
 
-    const combo = this.q('.hud-combo')
-    combo.classList.toggle('is-active', run.combo > 1)
-    if (run.combo > 1) {
-      if (this.set('combo', `×${run.combo}`)) {
-        combo.classList.remove('pop')
-        void combo.offsetWidth
-        combo.classList.add('pop')
-      }
-      this.q<HTMLElement>('.hud-combo-bar i').style.transform = `scaleX(${run.comboTimer / CONFIG.score.comboWindow})`
-    }
-
-    const compassEl = this.q<HTMLElement>('.hud-compass')
-    compassEl.classList.toggle('is-hidden', !compass)
-    if (compass) {
-      this.q<HTMLElement>('.hud-compass-arrow').style.transform = `rotate(${-compass.angle}rad)`
-      this.set('distance', this.i18n.t('hud.nearest', { m: Math.round(compass.distance) }))
-      compassEl.dataset.rise = compass.rise > 2 ? 'up' : compass.rise < -2 ? 'down' : ''
+  updateHud(journey: JourneyState, compass: CompassTarget | null, target: NpcInfo | null): void {
+    this.lastJourney = journey
+    this.renderTasks(journey)
+    this.renderInventory(journey)
+    this.renderCompass(compass)
+    this.renderPrompt(target)
+    if (this.lastMethod !== this.input.method) {
+      this.lastMethod = this.input.method
+      this.updateHint()
+      this.renderPrompt(target)
     }
   }
 
-  popup(text: string, at: { x: number; y: number }, kind: 'score' | 'hurt'): void {
+  hint(hint: Hint | null): void {
+    this.hintKey = hint
+    this.updateHint()
+  }
+
+  private updateHint(): void {
+    const el = this.q<HTMLElement>('.hint')
+    if (!this.hintKey) {
+      el.hidden = true
+      return
+    }
+    const method = this.input.method
+    const glyph = GLYPH[method][this.hintKey]
+    el.hidden = false
+    this.q('.hint-glyph').innerHTML = glyph
+    this.q('.hint-text').textContent = this.i18n.t(`hint.${this.hintKey}.${method}`)
+  }
+
+  private renderTasks(journey: JourneyState): void {
+    const visible = QUESTS.filter(q => journey.quests[q.id] !== 'available')
+    const key = visible.map(q => `${q.id}:${journey.quests[q.id]}:${journey.inventory[q.item]}`).join('|') + `:${visible.length === 0}`
+    if (this.hudCache.get('tasks') === key) return
+    this.hudCache.set('tasks', key)
+    const list = this.q<HTMLElement>('.task-list')
+    if (visible.length === 0) {
+      list.innerHTML = `<p class="tasks-empty">${this.i18n.t('hud.noTasks')}</p>`
+      return
+    }
+    list.innerHTML = visible.map(quest => {
+      const status = journey.quests[quest.id]
+      const have = Math.min(journey.inventory[quest.item], quest.need)
+      return `<div class="task ${status === 'done' ? 'is-done' : ''}" style="--accent:${quest.accent}">
+        <span class="task-avatar">${escapeHtml(this.i18n.t(quest.nameKey).slice(0, 1))}</span>
+        <span class="task-copy"><b>${escapeHtml(this.i18n.t(quest.titleKey))}</b>
+          <small>${status === 'done' ? this.i18n.t('hud.taskDone') : `${this.i18n.t(ITEMS[quest.item].nameKey)} · ${have}/${quest.need}`}</small></span>
+        <span class="task-icon">${status === 'done' ? ICON.check : ICON[quest.item]}</span>
+      </div>`
+    }).join('')
+  }
+
+  private renderInventory(journey: JourneyState): void {
+    const key = ITEM_KINDS.map(kind => journey.inventory[kind]).join(',')
+    if (this.hudCache.get('inventory') === key) return
+    this.hudCache.set('inventory', key)
+    for (const kind of ITEM_KINDS) {
+      const el = this.q<HTMLElement>(`[data-inv="${kind}"] b`)
+      el.textContent = String(journey.inventory[kind])
+      el.parentElement!.classList.toggle('is-empty', journey.inventory[kind] === 0)
+    }
+  }
+
+  private renderCompass(compass: CompassTarget | null): void {
+    const el = this.q<HTMLElement>('.compass')
+    if (!compass) {
+      el.hidden = true
+      return
+    }
+    el.hidden = false
+    const label = compass.kind === 'item'
+      ? this.i18n.t('hud.compassItem', { item: this.i18n.t(ITEMS[compass.item ?? 'berry'].nameKey), m: Math.round(compass.distance) })
+      : this.i18n.t('hud.compassNpc', { name: this.i18n.t(questById.get(compass.npc!)!.nameKey), m: Math.round(compass.distance) })
+    const arrow = this.q<HTMLElement>('.compass-arrow')
+    arrow.style.transform = `rotate(${(-compass.angle * 180) / Math.PI}deg)`
+    const text = this.q<HTMLElement>('.compass-label')
+    if (text.textContent !== label) text.textContent = label
+  }
+
+  private renderPrompt(target: NpcInfo | null): void {
+    const prompt = this.q<HTMLElement>('.prompt')
+    const talk = this.q<HTMLElement>('[data-touch="interact"]')
+    talk.classList.toggle('is-ready', !!target)
+    if (!target || this.screen !== 'hud') {
+      prompt.hidden = true
+      return
+    }
+    prompt.hidden = false
+    const method = this.input.method
+    const key = method === 'gamepad' ? 'Y' : 'E'
+    this.q('.prompt-key').textContent = key
+    this.q('.prompt-key').hidden = method === 'touch'
+    this.q('.prompt-text').textContent = this.i18n.t(method === 'touch' ? 'hud.talkTouch' : method === 'gamepad' ? 'hud.talkGamepad' : 'hud.talkKeyboard')
+  }
+
+  // ─── dialog ──────────────────────────────────────────────────────────────
+
+  showDialog(data: DialogData): void {
+    this.promptEl.hidden = true
+    this.hintEl.hidden = true
+    const name = escapeHtml(data.name)
+    this.q('.dialog-avatar').textContent = name.slice(0, 1)
+    this.q('.dialog-avatar').style.setProperty('--accent', data.accent)
+    this.q('.dialog-name').textContent = data.name
+    this.q('.dialog-title').textContent = data.title
+    this.q('.dialog-text').textContent = data.text
+    const dots = Array.from({ length: data.need }, (_, i) => `<span class="dot ${i < Math.min(data.have, data.need) ? 'is-full' : ''}">${i < Math.min(data.have, data.need) ? ICON[data.item] : ''}</span>`).join('')
+    this.q('.dialog-progress').innerHTML = `<span class="dialog-item">${ICON[data.item]}</span><span class="dialog-dots">${dots}</span><b>${Math.min(data.have, data.need)}/${data.need}</b>`
+    const button = this.q<HTMLButtonElement>('.dialog-button')
+    button.dataset.dialog = data.action
+    button.textContent = this.i18n.t(data.action === 'accept' ? 'dialog.accept' : data.action === 'turnin' ? 'dialog.turnin' : 'dialog.close')
+    this.setScreen('dialog')
+    this.audio.play('ui')
+  }
+
+  hideDialog(): void {
+    this.setScreen('hud')
+  }
+
+  // ─── effects ─────────────────────────────────────────────────────────────
+
+  popup(text: string, at: { x: number; y: number }, kind: 'item' | 'quest'): void {
     const el = document.createElement('div')
     el.className = `popup popup-${kind}`
     el.textContent = text
     el.style.left = `${at.x}px`
     el.style.top = `${at.y}px`
-    this.q('.popups').append(el)
-    el.addEventListener('animationend', () => el.remove())
+    this.q('.popups').appendChild(el)
+    window.setTimeout(() => el.remove(), 1300)
   }
 
-  hurt(): void {
-    const v = this.q('.hurt-vignette')
-    v.classList.remove('flash')
-    void (v as HTMLElement).offsetWidth
-    v.classList.add('flash')
+  questDone(id: QuestId): void {
+    const quest = questById.get(id)!
+    const banner = this.q<HTMLElement>('.banner')
+    banner.innerHTML = `<span class="banner-icon">${ICON.check}</span><span><b>${this.i18n.t('hud.questComplete')}</b><small>${escapeHtml(this.i18n.t(quest.titleKey))}</small></span>`
+    banner.hidden = false
+    banner.classList.add('is-show')
+    this.bannerTimer = 3
+    this.audio.play('win')
   }
 
-  hint(hint: Hint | null): void {
-    this.hintKey = hint
-    this.renderHint()
+  // ─── results & boards ────────────────────────────────────────────────────
+
+  showResults(journey: JourneyState, record = true): void {
+    this.lastJourney = journey
+    if (record) {
+      const entry = { name: this.save.data.playerName, score: journey.score, seconds: Math.round(journey.elapsed), at: Date.now() }
+      const { board, rank } = insertScore(this.save.data.leaderboard, entry)
+      this.save.update({ leaderboard: board })
+      this.savedRank = rank
+    }
+    this.q('.results-title').textContent = this.i18n.t('results.won')
+    this.q('.results-thanks').textContent = this.i18n.t('results.thanks')
+    this.q('.results-stars').innerHTML = Array.from({ length: 3 }, (_, i) => `<span class="result-star ${i < starsOf(journey) ? 'is-on' : ''}">${ICON.star}</span>`).join('')
+    const stats = [
+      ['results.tasks', `${QUESTS.filter(q => journey.quests[q.id] === 'done').length}/${QUESTS.length}`],
+      ['results.items', `${journey.totalCollected}/${QUESTS.reduce((n, q) => n + q.need, 0)}`],
+      ['results.time', formatDuration(journey.elapsed)],
+      ['results.score', journey.score.toLocaleString('ru-RU')],
+    ]
+    this.q('.results-stats').innerHTML = stats.map(([key, value]) => `<div class="result-stat"><span>${this.i18n.t(key)}</span><b>${value}</b></div>`).join('')
+    this.q<HTMLElement>('.results-newbest').hidden = this.savedRank !== 0
+    this.q('.results-newbest').textContent = this.i18n.t('results.newBest')
+    this.setScreen('results')
+    this.setOnlineStatus('pending')
   }
 
-  private renderHint(): void {
-    const el = this.q('.hint')
-    const hint = this.hintKey
-    if (!hint) {
-      el.classList.remove('is-active')
+  setOnlineStatus(state: OnlineState, message = '', rank?: number): void {
+    this.onlineMessage = message
+    const el = this.q<HTMLElement>('.online-status')
+    const retry = this.q<HTMLButtonElement>('[data-action="retry-submit"]')
+    el.className = `online-status is-${state}`
+    if (state === 'pending') el.textContent = this.i18n.t('results.onlinePending')
+    else if (state === 'saved') el.textContent = rank ? `${this.i18n.t('results.onlineSaved')} · ${this.i18n.t('results.rank', { rank })}` : this.i18n.t('results.onlineSaved')
+    else if (state === 'unranked') el.textContent = this.i18n.t('leaderboard.offline')
+    else el.textContent = this.i18n.t('results.onlineError', { error: message })
+    retry.hidden = state !== 'error'
+  }
+
+  setOnlineBoard(entries: OnlineEntry[] | null, state: 'loading' | 'ready' | 'error' | 'offline', message = ''): void {
+    this.onlineEntries = entries
+    this.onlineLoading = state === 'loading'
+    this.onlineMessage = message
+    this.renderOnlineBoard(state)
+  }
+
+  private renderOnlineBoard(state?: 'loading' | 'ready' | 'error' | 'offline'): void {
+    const el = this.q<HTMLElement>('.board-online')
+    const effective = state ?? (this.onlineLoading ? 'loading' : this.onlineEntries ? 'ready' : 'offline')
+    if (effective === 'loading') {
+      el.innerHTML = `<p class="board-note">${this.i18n.t('leaderboard.loading')}</p>`
       return
     }
-    const method = this.input.method
-    const glyph = method === 'gamepad' ? GLYPH.gamepad : GLYPH.keyboard
-    const key = hint === 'cores' ? 'hint.cores' : `hint.${hint}.${method === 'touch' && hint === 'look' ? 'keyboard' : method}`
-    const vars = { keys: glyph.keys, stick: hint === 'look' ? GLYPH.gamepad.stickR : GLYPH.gamepad.keys, key: hint === 'dash' ? glyph.dash : glyph.jump }
-    el.querySelector('span')!.innerHTML = this.i18n.t(key, vars)
-    el.classList.add('is-active')
-  }
-
-  private banner(text: string): void {
-    const el = this.q('.banner')
-    el.textContent = text
-    el.classList.remove('show')
-    void (el as HTMLElement).offsetWidth
-    el.classList.add('show')
-  }
-
-  // ─── results ────────────────────────────────────────────────────────────
-
-  showResults(run: RunState): void {
-    this.lastRun = run
-    this.savedRank = -1
-    const won = run.phase === 'won'
-    const el = this.q('[data-screen="results"]')
-    el.classList.toggle('is-won', won)
-    const titleKey = won ? 'results.won' : run.loseReason === 'time' ? 'results.lost.time' : 'results.lost.lives'
-    this.q('.results-title').setAttribute('data-i18n', titleKey)
-    const n = stars(run)
-    for (const [i, s] of this.qa('.results-stars .star').entries()) {
-      s.classList.toggle('is-on', i < n)
-      ;(s as HTMLElement).style.animationDelay = `${0.35 + i * 0.22}s`
-    }
-    const coreScore = run.score - run.timeBonus - run.lifeBonus
-    const fmt = (v: number) => v.toLocaleString(this.i18n.locale)
-    this.q('.r-cores').textContent = `${run.collected} / ${run.total}`
-    this.q('.r-core-score').textContent = fmt(coreScore)
-    this.q('.r-time').textContent = formatClock(run.elapsed)
-    this.q('.r-time-bonus').textContent = `+${fmt(run.timeBonus)}`
-    this.q('.r-life-bonus').textContent = `+${fmt(run.lifeBonus)}`
-    this.q('.r-total').textContent = fmt(run.score)
-    const best = this.save.data.leaderboard[0]?.score ?? 0
-    this.q('.results-best').classList.toggle('is-active', !run.unranked && run.score > best && run.score > 0)
-    const form = this.q('.results-save')
-    form.classList.toggle('is-hidden', run.unranked || run.score <= 0 || insertScore(this.save.data.leaderboard, this.entry(run)).rank < 0)
-    form.classList.remove('is-saved')
-    this.q<HTMLInputElement>('.results-name').value = this.save.data.playerName
-    this.q('.results-rank').textContent = ''
-    this.translate()
-    this.show('results')
-  }
-
-  private entry(run: RunState) {
-    return { name: this.q<HTMLInputElement>('.results-name')?.value.trim().slice(0, 16) || this.save.data.playerName, score: run.score, seconds: Math.round(run.elapsed), at: Date.now() }
-  }
-
-  private saveScore(): void {
-    if (!this.lastRun || this.lastRun.unranked || this.savedRank >= 0) return
-    const entry = this.entry(this.lastRun)
-    const { board, rank } = insertScore(this.save.data.leaderboard, entry)
-    this.save.update({ leaderboard: board, playerName: entry.name })
-    this.savedRank = rank
-    this.q('.results-save').classList.add('is-saved')
-    this.q('.results-rank').textContent = rank >= 0 ? this.i18n.t('results.rank', { rank: rank + 1 }) : ''
-    this.audio.play('ui')
-  }
-
-  private renderLeaderboard(): void {
-    const list = this.q('.board')
-    const board = this.save.data.leaderboard
-    if (board.length === 0) {
-      list.innerHTML = `<li class="board-empty">${this.i18n.t('leaderboard.empty')}</li>`
+    if (effective === 'error') {
+      el.innerHTML = `<p class="board-note is-error">${this.i18n.t('leaderboard.error', { error: escapeHtml(this.onlineMessage) })}</p>`
       return
     }
-    list.innerHTML = board
-      .map((e, i) => `<li class="${i === this.savedRank ? 'is-me' : ''}"><b>${i + 1}</b><span class="board-name"></span><span>${formatClock(e.seconds)}</span><em>${e.score.toLocaleString(this.i18n.locale)}</em></li>`)
-      .join('')
-    // Names are player-entered text: assign via textContent, never innerHTML.
-    list.querySelectorAll('.board-name').forEach((el, i) => (el.textContent = board[i].name))
+    if (effective === 'offline' || !this.onlineEntries || this.onlineEntries.length === 0) {
+      el.innerHTML = `<p class="board-note">${this.i18n.t(effective === 'offline' ? 'leaderboard.offline' : 'leaderboard.empty')}</p>`
+      return
+    }
+    el.innerHTML = rows(this.onlineEntries, this.i18n.t('leaderboard.name'), this.i18n.t('leaderboard.score'), this.i18n.t('leaderboard.time'))
+  }
+
+  private renderLocalBoard(): void {
+    const el = this.q<HTMLElement>('.board-local')
+    if (this.save.data.leaderboard.length === 0) {
+      el.innerHTML = `<p class="board-note">${this.i18n.t('leaderboard.empty')}</p>`
+      return
+    }
+    const entries = this.save.data.leaderboard.map((entry, i) => ({ rank: i + 1, name: entry.name, score: entry.score, seconds: entry.seconds }))
+    el.innerHTML = rows(entries, this.i18n.t('leaderboard.name'), this.i18n.t('leaderboard.score'), this.i18n.t('leaderboard.time'))
   }
 
   private renderBest(): void {
-    const best = this.save.data.leaderboard[0]?.score ?? 0
-    const el = this.q('.title-best')
-    el.classList.toggle('is-hidden', best <= 0)
-    el.textContent = this.i18n.t('menu.best', { score: best.toLocaleString(this.i18n.locale) })
+    const best = this.save.data.leaderboard[0]
+    this.q<HTMLElement>('.best').textContent = best ? this.i18n.t('menu.best', { score: best.score.toLocaleString('ru-RU') }) : ''
+    for (const el of this.root.querySelectorAll<HTMLInputElement>('[data-field="playerName"]')) {
+      if (document.activeElement !== el) el.value = this.save.data.playerName
+    }
   }
 
-  // ─── settings ───────────────────────────────────────────────────────────
+  // ─── settings ────────────────────────────────────────────────────────────
 
-  /** Re-read the save into the Settings controls (call after changing settings outside the UI). */
   refreshSettings(): void {
     const d = this.save.data
-    this.q<HTMLInputElement>('[name="musicVolume"]').value = String(d.musicVolume)
-    this.q<HTMLInputElement>('[name="sfxVolume"]').value = String(d.sfxVolume)
-    this.q<HTMLInputElement>('[name="sensitivity"]').value = String(d.sensitivity)
-    for (const t of this.qa<HTMLButtonElement>('.toggle')) {
-      const on = d[t.dataset.setting as 'muted' | 'invertY' | 'reducedMotion'] === true
-      t.setAttribute('aria-pressed', String(on))
-      t.querySelector('span')!.setAttribute('data-i18n', on ? 'settings.on' : 'settings.off')
+    this.q<HTMLInputElement>('[data-setting="musicVolume"]').value = String(Math.round(d.musicVolume * 100))
+    this.q<HTMLInputElement>('[data-setting="sfxVolume"]').value = String(Math.round(d.sfxVolume * 100))
+    this.q<HTMLInputElement>('[data-setting="sensitivity"]').value = String(Math.round(d.sensitivity * 100))
+    this.q<HTMLInputElement>('[data-field="playerName"]').value = d.playerName
+    for (const input of this.root.querySelectorAll<HTMLInputElement>('[data-toggle]')) {
+      input.checked = Boolean(d[input.dataset.toggle as keyof SaveData])
     }
-    for (const b of this.qa<HTMLButtonElement>('.seg button')) {
-      const key = b.parentElement!.dataset.setting as 'quality' | 'locale'
-      const current = key === 'locale' ? this.i18n.locale : d.quality
-      b.setAttribute('aria-pressed', String(b.dataset.value === current))
-    }
-    for (const r of this.qa<HTMLInputElement>('input[type="range"]')) r.style.setProperty('--fill', `${((Number(r.value) - Number(r.min)) / (Number(r.max) - Number(r.min))) * 100}%`)
-    this.translate()
+    this.root.querySelectorAll<HTMLElement>('.seg [data-value]').forEach(btn => {
+      btn.classList.toggle('is-on', btn.dataset.value === d.quality)
+    })
+    this.updateOutputs()
   }
 
-  // ─── events ─────────────────────────────────────────────────────────────
-
-  private onClick(e: MouseEvent): void {
-    const target = (e.target as HTMLElement).closest<HTMLElement>('[data-action], .toggle, .seg button')
-    if (!target) return
-    this.audio.unlock()
-    if (target.matches('.toggle')) {
-      const key = target.dataset.setting as 'muted' | 'invertY' | 'reducedMotion'
-      this.actions.settings({ [key]: !this.save.data[key] })
-      this.refreshSettings()
-      this.audio.play('ui')
-      return
-    }
-    if (target.matches('.seg button')) {
-      const key = target.parentElement!.dataset.setting
-      if (key === 'quality') this.actions.settings({ quality: target.dataset.value as Quality })
-      if (key === 'locale') this.actions.settings({ locale: target.dataset.value as Locale })
-      this.refreshSettings()
-      this.audio.play('ui')
-      return
-    }
-    const action = target.dataset.action
-    switch (action) {
-      case 'play': this.actions.play(); break
-      case 'resume': this.actions.resume(); break
-      case 'restart': this.actions.restart(); break
-      case 'quit': this.actions.quit(); break
-      case 'settings': this.push('settings'); break
-      case 'leaderboard': this.push('leaderboard'); break
-      case 'back': this.back(); break
-      case 'save-score': this.saveScore(); break
-      case 'pause': window.dispatchEvent(new CustomEvent('game:pause')); break
+  private updateOutputs(): void {
+    for (const el of this.root.querySelectorAll<HTMLElement>('[data-out]')) {
+      const name = el.dataset.out as 'music' | 'sfx' | 'sensitivity'
+      const value = name === 'music' ? this.save.data.musicVolume : name === 'sfx' ? this.save.data.sfxVolume : this.save.data.sensitivity
+      el.textContent = `${Math.round(value * 100)}%`
     }
   }
 
-  private onInput(e: Event): void {
-    const el = e.target as HTMLInputElement
-    if (el.type !== 'range') return
-    el.style.setProperty('--fill', `${((Number(el.value) - Number(el.min)) / (Number(el.max) - Number(el.min))) * 100}%`)
-    this.actions.settings({ [el.name]: Number(el.value) } as Partial<SaveData>)
-  }
+  // ─── navigation ──────────────────────────────────────────────────────────
 
-  private onKey(e: KeyboardEvent): void {
-    if (this.screen === 'hud' || this.screen === 'boot') return
-    const typing = (e.target as HTMLElement).matches?.('input[type="text"]')
-    if ((e.code === 'Escape' || (e.code === 'Backspace' && !typing)) && this.screen !== 'title') {
-      // The pause toggle in main.ts owns Escape on the pause screen itself.
-      if (this.screen !== 'pause' && this.screen !== 'results') {
-        e.preventDefault()
-        // Escape is also the pause toggle; consume it so leaving Settings doesn't resume the run.
-        this.input.consume('pause')
-        this.back()
-      }
-      return
-    }
-    if (e.code === 'ArrowDown' || e.code === 'ArrowUp') {
-      e.preventDefault()
-      this.moveFocus(e.code === 'ArrowDown' ? 1 : -1)
-    }
-  }
-
-  /** Per-frame gamepad menu navigation (keyboard uses native focus + onKey). */
   frame(frameSeconds: number): void {
-    if (this.input.method !== this.lastMethod) {
+    if (this.lastMethod !== this.input.method) {
       this.lastMethod = this.input.method
-      this.renderPrompts()
-      this.renderHint()
+      this.updateHint()
+    }
+    if (this.bannerTimer > 0) {
+      this.bannerTimer -= frameSeconds
+      if (this.bannerTimer <= 0) {
+        this.q('.banner').classList.remove('is-show')
+        window.setTimeout(() => (this.q<HTMLElement>('.banner').hidden = true), 300)
+      }
     }
     if (this.screen === 'hud' || this.screen === 'boot') return
-    if (this.input.method !== 'gamepad') {
-      this.input.consume('confirm')
-      this.input.consume('back')
+    if (this.input.method === 'gamepad') {
+      const x = this.input.move.x
+      const y = this.input.move.y
+      if (Math.abs(x) > 0.5 || Math.abs(y) > 0.5) {
+        this.navRepeat -= frameSeconds
+        if (this.navRepeat <= 0) {
+          this.moveFocus(x, y)
+          this.navRepeat = 0.2
+        }
+      } else {
+        this.navRepeat = 0
+      }
+      if (this.input.consume('confirm')) {
+        const active = document.activeElement as HTMLElement | null
+        if (active && typeof active.matches === 'function' && active.matches('.btn, .seg button, .toggle, [data-nav]')) active.click()
+      }
+      if (this.input.consume('back')) this.back()
+    }
+  }
+
+  moveFocus(x: number, y: number): void {
+    const items = this.navItems()
+    if (items.length === 0) return
+    const active = document.activeElement as HTMLElement | null
+    const index = items.indexOf(active!)
+    if (index < 0) {
+      items[0]!.focus({ preventScroll: true })
       return
     }
-    const y = this.input.move.y
-    const x = this.input.move.x
-    this.navRepeat = Math.max(0, this.navRepeat - frameSeconds)
-    const active = document.activeElement as HTMLElement | null
-    if (Math.abs(y) > 0.6 && this.navRepeat <= 0) {
-      this.moveFocus(y < 0 ? 1 : -1)
-      this.navRepeat = 0.22
-    } else if (Math.abs(x) > 0.6 && this.navRepeat <= 0 && active?.matches('input[type="range"]')) {
-      const r = active as HTMLInputElement
-      r.value = String(Number(r.value) + Math.sign(x) * Number(r.step || 0.1))
-      r.dispatchEvent(new Event('input', { bubbles: true }))
-      this.navRepeat = 0.12
-    } else if (Math.abs(x) > 0.6 && this.navRepeat <= 0 && active?.parentElement?.matches('.seg')) {
-      const sib = (Math.sign(x) > 0 ? active.nextElementSibling : active.previousElementSibling) as HTMLElement | null
-      sib?.focus()
-      this.navRepeat = 0.22
-    } else if (Math.abs(y) < 0.3 && Math.abs(x) < 0.3) {
-      this.navRepeat = 0
+    const rect = active!.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    let best: { el: HTMLElement; score: number } | null = null
+    for (const el of items) {
+      if (el === active) continue
+      const r = el.getBoundingClientRect()
+      const dx = r.left + r.width / 2 - cx
+      const dy = r.top + r.height / 2 - cy
+      const along = dx * x + dy * y
+      if (along <= 8) continue
+      const across = Math.abs(dx * y - dy * x)
+      const score = along + across * 2
+      if (!best || score < best.score) best = { el, score }
     }
-    // Navigation and confirm may arrive together; activate the newly focused control.
-    if (this.input.consume('confirm')) (document.activeElement as HTMLElement | null)?.click()
-    if (this.input.consume('back') && this.screen !== 'title') this.back()
+    ;(best?.el ?? active!)?.focus({ preventScroll: true })
   }
 
   private navItems(): HTMLElement[] {
-    const screen = this.q(`[data-screen="${this.screen}"]`)
-    return [...screen.querySelectorAll<HTMLElement>('[data-nav]')].filter(el => el.offsetParent !== null && !el.closest('.is-hidden'))
+    return [...this.root.querySelectorAll<HTMLElement>('[data-screen].is-active .btn, [data-screen].is-active .seg button, [data-screen].is-active .toggle, [data-screen].is-active input:not([type="hidden"])')]
+      .filter(el => !el.hasAttribute('hidden') && el.offsetParent !== null)
   }
 
-  private moveFocus(dir: 1 | -1): void {
-    const items = this.navItems()
-    if (items.length === 0) return
-    // Buttons inside one segmented control count as a single row.
-    const rows: HTMLElement[][] = []
-    for (const el of items) {
-      const seg = el.parentElement?.matches('.seg') ? el.parentElement : null
-      const last = rows[rows.length - 1]
-      if (seg && last && last[0].parentElement === seg) last.push(el)
-      else rows.push([el])
+  private onKey(event: KeyboardEvent): void {
+    if (event.code !== 'Escape' && (event.target as HTMLElement | null)?.matches('input[type="text"], input:not([type]), textarea')) return
+    if (event.code === 'Escape') {
+      if (this.screen === 'dialog' || this.screen === 'settings' || this.screen === 'leaderboard' || this.screen === 'pause') {
+        this.input.consume('pause')
+      }
+      if (this.screen === 'dialog') this.actions.dialog('close')
+      else if (this.screen === 'settings' || this.screen === 'leaderboard' || this.screen === 'pause') this.back()
     }
-    const current = rows.findIndex(r => r.includes(document.activeElement as HTMLElement))
-    const next = rows[(current + dir + rows.length) % rows.length]
-    ;(next.find(el => el.getAttribute('aria-pressed') === 'true') ?? next[0]).focus()
   }
 
-  // ─── helpers ────────────────────────────────────────────────────────────
+  // ─── events ──────────────────────────────────────────────────────────────
+
+  private onClick(event: Event): void {
+    const el = (event.target as HTMLElement).closest<HTMLElement>('[data-action], [data-dialog], [data-setting], [data-toggle]')
+    if (!el) return
+    this.audio.unlock()
+    const action = el.dataset.action
+    if (action) {
+      this.audio.play('ui')
+      if (action === 'play') this.actions.play()
+      else if (action === 'pause') this.actions.pause()
+      else if (action === 'resume') this.actions.resume()
+      else if (action === 'restart') this.actions.restart()
+      else if (action === 'quit') this.actions.quit()
+      else if (action === 'settings') this.push('settings')
+      else if (action === 'leaderboard') this.push('leaderboard')
+      else if (action === 'back') this.back()
+      else if (action === 'retry-boot') window.location.reload()
+      else if (action === 'retry-submit') this.actions.retrySubmit()
+      return
+    }
+    const dialog = el.dataset.dialog as DialogAction | undefined
+    if (dialog) {
+      this.actions.dialog(dialog)
+      return
+    }
+    if (el.dataset.setting === 'quality' && el.dataset.value) {
+      this.audio.play('ui')
+      this.actions.settings({ quality: el.dataset.value as Quality })
+      this.refreshSettings()
+    }
+  }
+
+  private onInput(event: Event): void {
+    const el = event.target as HTMLInputElement
+    if (el.matches('[data-field="playerName"]')) {
+      const name = el.value.trim().slice(0, 16) || 'Дружок'
+      this.actions.settings({ playerName: name })
+      return
+    }
+    const setting = el.dataset.setting
+    if (setting === 'musicVolume' || setting === 'sfxVolume') {
+      const value = Number(el.value) / 100
+      this.actions.settings(setting === 'musicVolume' ? { musicVolume: value } : { sfxVolume: value })
+      this.updateOutputs()
+    } else if (setting === 'sensitivity') {
+      this.actions.settings({ sensitivity: Number(el.value) / 100 })
+      this.updateOutputs()
+    } else if (el.dataset.toggle) {
+      const key = el.dataset.toggle as keyof SaveData
+      if (key === 'muted' || key === 'invertY' || key === 'reducedMotion') this.actions.settings({ [key]: el.checked })
+    }
+  }
+
+  // ─── helpers ─────────────────────────────────────────────────────────────
 
   private translate(): void {
-    for (const el of this.root.querySelectorAll<HTMLElement>('[data-i18n]')) el.textContent = this.i18n.t(el.dataset.i18n!)
-    for (const el of this.root.querySelectorAll<HTMLElement>('[data-i18n-label]')) el.setAttribute('aria-label', this.i18n.t(el.dataset.i18nLabel!))
-    for (const el of this.root.querySelectorAll<HTMLInputElement>('[data-i18n-placeholder]')) el.placeholder = this.i18n.t(el.dataset.i18nPlaceholder!)
-    this.renderPrompts()
-    this.renderHint()
-    if (this.screen === 'title') this.renderBest()
-    if (this.screen === 'leaderboard') this.renderLeaderboard()
-    this.hudCache.clear()
-    document.title = this.i18n.t('game.title')
+    document.documentElement.lang = 'ru'
+    for (const el of this.root.querySelectorAll<HTMLElement>('[data-i18n]')) {
+      el.textContent = this.i18n.t(el.dataset.i18n!)
+    }
+    for (const el of this.root.querySelectorAll<HTMLElement>('[data-i18n-placeholder]')) {
+      el.setAttribute('placeholder', this.i18n.t(el.dataset.i18nPlaceholder!))
+    }
   }
 
-  /** Bottom-bar button prompts follow the active input method. */
-  renderPrompts(): void {
-    const g = this.input.method === 'gamepad' ? GLYPH.gamepad : GLYPH.keyboard
-    const html = this.input.method === 'touch' ? '' : `<span>${g.select} ${this.i18n.t('prompt.select')}</span><span>${g.back} ${this.i18n.t('prompt.back')}</span>`
-    for (const el of this.qa('.prompts')) el.innerHTML = html
+  private q<T extends HTMLElement>(selector: string): T {
+    return this.root.querySelector<T>(selector)!
   }
+}
 
-  /** Update a HUD text slot only when it changed; returns true if it did. */
-  private set(slot: string, html: string): boolean {
-    if (this.hudCache.get(slot) === html) return false
-    this.hudCache.set(slot, html)
-    this.q(`[data-slot="${slot}"]`).innerHTML = html
-    return true
-  }
-
-  private q<T extends HTMLElement = HTMLElement>(sel: string): T {
-    return this.root.querySelector<T>(sel)!
-  }
-
-  private qa<T extends HTMLElement = HTMLElement>(sel: string): T[] {
-    return [...this.root.querySelectorAll<T>(sel)]
-  }
-
-  private template(): string {
-    const range = (name: string, label: string, min: number, max: number, step: number) =>
-      `<label class="row"><span data-i18n="${label}"></span><input data-nav type="range" name="${name}" min="${min}" max="${max}" step="${step}"></label>`
-    const toggle = (setting: string, label: string) =>
-      `<div class="row"><span data-i18n="${label}"></span><button data-nav class="toggle" data-setting="${setting}" aria-pressed="false"><i></i><span></span></button></div>`
-    return /* html */ `
-<section class="screen screen-boot is-active" data-screen="boot">
-  <div class="boot-logo" data-i18n="game.title"></div>
-  <div class="boot-bar"><i></i></div>
-  <div class="boot-label" data-i18n="boot.loading"></div>
-</section>
-
-<section class="screen screen-title" data-screen="title">
-  <div class="title-vignette"></div>
-  <div class="title-best is-hidden"></div>
-  <div class="title-block">
-    <div class="logo">
-      <span class="logo-gem">${ICON.core}</span>
-      <h1 class="logo-text" data-i18n="game.title"></h1>
+function template(): string {
+  return `
+  <section class="boot" data-screen="boot">
+    <div class="boot-card">
+      <div class="boot-mark">${ICON.star}</div>
+      <h1 class="boot-title">Плюхик</h1>
+      <p class="boot-sub">и Чудо-остров</p>
+      <div class="boot-bar"><i></i></div>
+      <p class="boot-status" data-i18n="boot.loading"></p>
+      <p class="boot-error" hidden></p>
+      <button class="btn primary boot-retry" data-action="retry-boot" data-i18n="boot.retry" hidden></button>
     </div>
-    <p class="tagline" data-i18n="game.tagline"></p>
-    <nav class="menu">
-      <button data-nav class="btn btn-primary" data-action="play"><span data-i18n="menu.play"></span></button>
-      <button data-nav class="btn" data-action="leaderboard"><span data-i18n="menu.leaderboard"></span></button>
-      <button data-nav class="btn" data-action="settings"><span data-i18n="menu.settings"></span></button>
-    </nav>
-  </div>
-  <footer class="bottom-bar"><div class="prompts"></div><small data-i18n="credits.fonts"></small></footer>
-</section>
+  </section>
 
-<section class="screen screen-hud" data-screen="hud">
-  <div class="hurt-vignette"></div>
+  <section class="title" data-screen="title">
+    <div class="title-shade"></div>
+    <div class="title-card">
+      <div class="logo">
+        <span class="logo-text">ПЛЮХИК</span>
+        <span class="logo-small">И ЧУДО-ОСТРОВ</span>
+      </div>
+      <p class="tagline" data-i18n="game.tagline"></p>
+      <label class="name-field"><span data-i18n="menu.nameLabel"></span>
+        <input data-field="playerName" maxlength="16" autocomplete="off" spellcheck="false" data-i18n-placeholder="menu.namePlaceholder" />
+        <small class="privacy-note" data-i18n="menu.namePrivacy"></small>
+      </label>
+      <div class="menu-buttons">
+        <button class="btn primary big" data-action="play" data-nav>${ICON.play}<span data-i18n="menu.play"></span></button>
+        <button class="btn" data-action="leaderboard" data-nav data-i18n="menu.leaderboard"></button>
+        <button class="btn" data-action="settings" data-nav data-i18n="menu.settings"></button>
+      </div>
+      <p class="best"></p>
+    </div>
+    <p class="title-foot" data-i18n="credits.fonts"></p>
+  </section>
+
+  <section class="hud" data-screen="hud">
+    <div class="hud-top">
+      <div class="tasks panel">
+        <h2 data-i18n="hud.tasks"></h2>
+        <div class="task-list"></div>
+      </div>
+      <div class="hud-right">
+        <button class="icon-btn" data-action="pause" data-nav aria-label="Пауза">${ICON.pause}</button>
+        <div class="inventory panel">
+          ${ITEM_KINDS.map(kind => `<div class="inv-item is-empty" data-inv="${kind}" title="${kind}"><span class="inv-icon">${ICON[kind]}</span><b>0</b></div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="compass" hidden><span class="compass-arrow">${ICON.arrow}</span><span class="compass-label"></span></div>
+    <div class="hint" hidden><span class="hint-glyph"></span><span class="hint-text"></span></div>
+    <div class="prompt" hidden><span class="prompt-key">E</span><span class="prompt-text"></span></div>
+    <div class="banner" hidden></div>
+    <div class="touch">
+      <div class="touch-stick"><i></i></div>
+      <div class="touch-buttons">
+        <button class="touch-btn talk" data-touch="interact"><span data-i18n="touch.talk"></span></button>
+        <button class="touch-btn jump" data-touch="jump"><span data-i18n="touch.jump"></span></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="dialog" data-screen="dialog">
+    <div class="dialog-backdrop"></div>
+    <div class="dialog-card">
+      <div class="dialog-avatar"></div>
+      <div class="dialog-body">
+        <p class="dialog-name"></p>
+        <h2 class="dialog-title"></h2>
+        <p class="dialog-text"></p>
+        <div class="dialog-progress"></div>
+        <button class="btn primary dialog-button" data-dialog="close" data-nav></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="modal" data-screen="pause">
+    <div class="modal-card">
+      <h1 data-i18n="pause.title"></h1>
+      <div class="stack">
+        <button class="btn primary" data-action="resume" data-nav data-i18n="menu.continue"></button>
+        <button class="btn" data-action="settings" data-nav data-i18n="menu.settings"></button>
+        <button class="btn" data-action="restart" data-nav data-i18n="menu.restart"></button>
+        <button class="btn" data-action="quit" data-nav data-i18n="menu.quit"></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="modal" data-screen="settings">
+    <div class="modal-card settings-card">
+      <h1 data-i18n="settings.title"></h1>
+      <div class="settings-scroll">
+        <fieldset><legend data-i18n="settings.audio"></legend>
+          <label class="range"><span data-i18n="settings.music"></span><input type="range" min="0" max="100" data-setting="musicVolume" /><b data-out="music"></b></label>
+          <label class="range"><span data-i18n="settings.sfx"></span><input type="range" min="0" max="100" data-setting="sfxVolume" /><b data-out="sfx"></b></label>
+          <label class="toggle"><span data-i18n="settings.mute"></span><input type="checkbox" data-toggle="muted" /><i></i></label>
+        </fieldset>
+        <fieldset><legend data-i18n="settings.controls"></legend>
+          <label class="range"><span data-i18n="settings.sensitivity"></span><input type="range" min="20" max="300" data-setting="sensitivity" /><b data-out="sensitivity"></b></label>
+          <label class="toggle"><span data-i18n="settings.invertY"></span><input type="checkbox" data-toggle="invertY" /><i></i></label>
+        </fieldset>
+        <fieldset><legend data-i18n="settings.display"></legend>
+          <div class="setting-row"><span data-i18n="settings.quality"></span>
+            <div class="seg"><button data-setting="quality" data-value="low" data-nav data-i18n="settings.quality.low"></button><button data-setting="quality" data-value="medium" data-nav data-i18n="settings.quality.medium"></button><button data-setting="quality" data-value="high" data-nav data-i18n="settings.quality.high"></button></div>
+          </div>
+          <label class="toggle"><span data-i18n="settings.reducedMotion"></span><input type="checkbox" data-toggle="reducedMotion" /><i></i></label>
+        </fieldset>
+        <fieldset><legend data-i18n="settings.playerName"></legend>
+          <input class="name-input" data-field="playerName" maxlength="16" autocomplete="off" spellcheck="false" data-i18n-placeholder="menu.namePlaceholder" />
+          <small class="privacy-note" data-i18n="menu.namePrivacy"></small>
+        </fieldset>
+      </div>
+      <button class="btn primary" data-action="back" data-nav data-i18n="menu.back"></button>
+    </div>
+  </section>
+
+  <section class="modal board-modal" data-screen="leaderboard">
+    <div class="modal-card board-card">
+      <h1 data-i18n="leaderboard.title"></h1>
+      <div class="boards">
+        <div><h3 data-i18n="leaderboard.local"></h3><div class="board-local board-list"></div></div>
+        <div><h3 data-i18n="leaderboard.online"></h3><div class="board-online board-list"></div></div>
+      </div>
+      <button class="btn primary" data-action="back" data-nav data-i18n="menu.back"></button>
+    </div>
+  </section>
+
+  <section class="modal results" data-screen="results">
+    <div class="results-card">
+      <div class="results-stars"></div>
+      <h1 class="results-title"></h1>
+      <p class="results-thanks"></p>
+      <p class="results-newbest" hidden></p>
+      <div class="results-stats"></div>
+      <p class="online-status"></p>
+      <div class="stack row">
+        <button class="btn retry-submit" data-action="retry-submit" data-nav data-i18n="results.retrySubmit" hidden></button>
+        <button class="btn primary" data-action="restart" data-nav data-i18n="results.retry"></button>
+        <button class="btn" data-action="quit" data-nav data-i18n="results.title"></button>
+      </div>
+    </div>
+  </section>
+
   <div class="popups"></div>
-  <div class="hud-top-left">
-    <div class="hud-panel hud-cores"><span class="hud-core-icon">${ICON.core}</span><b data-slot="cores"></b></div>
-    <div class="hud-score"><span data-i18n="hud.score"></span><b data-slot="score"></b></div>
-  </div>
-  <div class="hud-top-center">
-    <div class="hud-clock"><b data-slot="clock"></b></div>
-    <div class="hud-compass"><span class="hud-compass-arrow">${ICON.arrow}</span><b data-slot="distance"></b></div>
-  </div>
-  <div class="hud-top-right">
-    <div class="hud-cells">${`<span class="hud-cell">${ICON.cell}</span>`.repeat(CONFIG.run.lives)}</div>
-    <button class="hud-pause" data-action="pause" data-i18n-label="touch.pause">${ICON.pause}</button>
-  </div>
-  <div class="hud-combo"><b data-slot="combo"></b><span data-i18n="hud.combo"></span><div class="hud-combo-bar"><i></i></div></div>
-  <div class="banner"></div>
-  <div class="hint"><span></span></div>
-  <div class="touch">
-    <div class="touch-stick"><i></i></div>
-    <button class="touch-btn touch-dash" data-touch="dash"><span data-i18n="touch.dash"></span></button>
-    <button class="touch-btn touch-jump" data-touch="jump"><span data-i18n="touch.jump"></span></button>
-  </div>
-</section>
+  `
+}
 
-<section class="screen screen-pause screen-modal" data-screen="pause">
-  <div class="modal">
-    <h2 class="modal-title" data-i18n="pause.title"></h2>
-    <nav class="menu">
-      <button data-nav class="btn btn-primary" data-action="resume"><span data-i18n="menu.continue"></span></button>
-      <button data-nav class="btn" data-action="restart"><span data-i18n="menu.restart"></span></button>
-      <button data-nav class="btn" data-action="settings"><span data-i18n="menu.settings"></span></button>
-      <button data-nav class="btn" data-action="quit"><span data-i18n="menu.quit"></span></button>
-    </nav>
-  </div>
-  <footer class="bottom-bar"><div class="prompts"></div></footer>
-</section>
+function rows(entries: OnlineEntry[], nameLabel: string, scoreLabel: string, timeLabel: string): string {
+  const head = `<div class="board-row board-head"><span>#</span><span>${escapeHtml(nameLabel)}</span><span>${escapeHtml(scoreLabel)}</span><span>${escapeHtml(timeLabel)}</span></div>`
+  const body = entries.map(entry => `<div class="board-row"><span class="rank">${entry.rank}</span><span class="board-name">${escapeHtml(entry.name)}</span><span class="board-score">${entry.score.toLocaleString('ru-RU')}</span><span class="board-time">${entry.seconds === null ? '—' : formatDuration(entry.seconds)}</span></div>`).join('')
+  return head + body
+}
 
-<section class="screen screen-settings screen-modal" data-screen="settings">
-  <div class="modal modal-wide">
-    <h2 class="modal-title" data-i18n="settings.title"></h2>
-    <div class="settings-grid">
-      <fieldset><legend data-i18n="settings.audio"></legend>
-        ${range('musicVolume', 'settings.music', 0, 1, 0.05)}
-        ${range('sfxVolume', 'settings.sfx', 0, 1, 0.05)}
-        ${toggle('muted', 'settings.mute')}
-      </fieldset>
-      <fieldset><legend data-i18n="settings.controls"></legend>
-        ${range('sensitivity', 'settings.sensitivity', 0.2, 3, 0.1)}
-        ${toggle('invertY', 'settings.invertY')}
-      </fieldset>
-      <fieldset><legend data-i18n="settings.display"></legend>
-        <div class="row"><span data-i18n="settings.quality"></span><div class="seg" data-setting="quality">
-          <button data-nav data-value="low" data-i18n="settings.quality.low"></button><button data-nav data-value="medium" data-i18n="settings.quality.medium"></button><button data-nav data-value="high" data-i18n="settings.quality.high"></button>
-        </div></div>
-        ${toggle('reducedMotion', 'settings.reducedMotion')}
-        <div class="row"><span data-i18n="settings.language"></span><div class="seg" data-setting="locale">
-          <button data-nav data-value="en" lang="en">English</button><button data-nav data-value="zh-CN" lang="zh-CN">简体中文</button>
-        </div></div>
-      </fieldset>
-    </div>
-    <nav class="menu menu-row"><button data-nav class="btn" data-action="back"><span data-i18n="menu.back"></span></button></nav>
-  </div>
-  <footer class="bottom-bar"><div class="prompts"></div></footer>
-</section>
-
-<section class="screen screen-leaderboard screen-modal" data-screen="leaderboard">
-  <div class="modal">
-    <h2 class="modal-title" data-i18n="leaderboard.title"></h2>
-    <div class="board-head"><b>#</b><span></span><span data-i18n="leaderboard.time"></span><em data-i18n="leaderboard.score"></em></div>
-    <ol class="board"></ol>
-    <nav class="menu menu-row"><button data-nav class="btn" data-action="back"><span data-i18n="menu.back"></span></button></nav>
-  </div>
-  <footer class="bottom-bar"><div class="prompts"></div></footer>
-</section>
-
-<section class="screen screen-results screen-modal" data-screen="results">
-  <div class="modal modal-results">
-    <div class="results-stars">${`<span class="star">${ICON.star}</span>`.repeat(3)}</div>
-    <h2 class="results-title modal-title"></h2>
-    <div class="results-best" data-i18n="results.newBest"></div>
-    <dl class="results-table">
-      <div><dt data-i18n="results.cores"></dt><dd class="r-cores"></dd><dd class="r-core-score"></dd></div>
-      <div><dt data-i18n="results.time"></dt><dd class="r-time"></dd><dd></dd></div>
-      <div class="r-bonus"><dt data-i18n="results.timeBonus"></dt><dd></dd><dd class="r-time-bonus"></dd></div>
-      <div class="r-bonus"><dt data-i18n="results.lifeBonus"></dt><dd></dd><dd class="r-life-bonus"></dd></div>
-      <div class="r-total-row"><dt data-i18n="results.total"></dt><dd></dd><dd class="r-total"></dd></div>
-    </dl>
-    <div class="results-save">
-      <input data-nav class="results-name" type="text" maxlength="16" autocomplete="off" spellcheck="false" data-i18n-placeholder="results.name">
-      <button data-nav class="btn btn-small" data-action="save-score"><span data-i18n="results.save"></span></button>
-      <span class="results-saved" data-i18n="results.saved"></span>
-      <span class="results-rank"></span>
-    </div>
-    <nav class="menu menu-row">
-      <button data-nav class="btn btn-primary" data-action="restart"><span data-i18n="results.retry"></span></button>
-      <button data-nav class="btn" data-action="quit"><span data-i18n="results.title"></span></button>
-    </nav>
-  </div>
-</section>`
-  }
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]!))
 }

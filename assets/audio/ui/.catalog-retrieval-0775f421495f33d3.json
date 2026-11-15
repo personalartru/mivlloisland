@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "archiveSha256": "9413e90878b26c9ec9f566c11df9d0b0491641db4894d49fcb38b74fb94ae7d1",
+  "archiveSizeBytes": 8837,
+  "members": [
+    {
+      "member": "ready-click-01.wav",
+      "sha256": "e62b419e13f681d402640455336ab383d2b2c4a187954b1dd42fb62a79a81827",
+      "sizeBytes": 8864
+    }
+  ],
+  "dependencyCoverage": "glb-gltf-obj-mtl-textureatlas-bmfont-tiled",
+  "limitations": [],
+  "catalogSources": [
+    {
+      "snapshotId": "catalog-20260924-japan-characters-scene-removal-v1",
+      "catalogPath": "sfx/ui/sfxmint-ready-click/assets.zip"
+    }
+  ],
+  "catalogMetadata": [
+    {
+      "snapshotId": "catalog-20260924-japan-characters-scene-removal-v1",
+      "catalogPath": "sfx/ui/sfxmint-ready-click/assets.zip",
+      "metadataPath": "sfx/ui/sfxmint-ready-click/metadata.json",
+      "metadataSha256": "6ec568dc3a29e8c1820da76067d03a5e609c2931036b6c61b12a0c1707511088",
+      "archiveSha256": "9413e90878b26c9ec9f566c11df9d0b0491641db4894d49fcb38b74fb94ae7d1",
+      "source": {
+        "packId": "sfxmint:ready-click",
+        "name": "UI click sound effects",
+        "url": "https://sfxmint.com/sounds/ready-click",
+        "metadataPath": "sfx/ui/sfxmint-ready-click/metadata.json",
+        "metadataSha256": "sha256:6ec568dc3a29e8c1820da76067d03a5e609c2931036b6c61b12a0c1707511088"
+      },
+      "license": {
+        "id": "CC0-1.0",
+        "attributionRequired": false,
+        "copyrightNoticeRequired": false,
+        "licenseNoticeRequired": false,
+        "modificationNoticeRequired": false,
+        "commercialUseAllowed": true,
+        "editableProjectDistributionAllowed": true,
+        "reusableTemplateDistributionAllowed": true
+      }
+    }
+  ]
+}

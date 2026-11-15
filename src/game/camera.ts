@@ -11,7 +11,7 @@ const C = CONFIG.camera
 export class FollowCamera {
   readonly camera = new THREE.PerspectiveCamera(C.fov, 1, 0.1, 500)
   yaw = 0
-  pitch = 0.42
+  pitch = 0.32
   private distance: number = C.distance
   private readonly focus = new THREE.Vector3()
   private shake = 0

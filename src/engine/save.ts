@@ -2,15 +2,14 @@
  * Versioned local save. Everything the player keeps between sessions lives in one JSON record so
  * it is easy to migrate. Corrupt or foreign data falls back to defaults instead of crashing.
  */
-export type Locale = 'en' | 'zh-CN'
+export type Locale = 'ru'
 export type Quality = 'low' | 'medium' | 'high'
 
 export type ScoreEntry = { name: string; score: number; seconds: number; at: number }
 
 export type SaveData = {
   version: 1
-  /** '' = never chosen; the game follows the browser language until the player picks one. */
-  locale: Locale | ''
+  locale: Locale
   musicVolume: number
   sfxVolume: number
   muted: boolean
@@ -23,13 +22,13 @@ export type SaveData = {
   leaderboard: ScoreEntry[]
 }
 
-export const SAVE_KEY = 'game3d.save'
+export const SAVE_KEY = 'plyuhik.save'
 export const LEADERBOARD_SIZE = 10
 
 export function defaultSave(): SaveData {
   return {
     version: 1,
-    locale: '',
+    locale: 'ru',
     musicVolume: 0.7,
     sfxVolume: 0.8,
     muted: false,
@@ -38,7 +37,7 @@ export function defaultSave(): SaveData {
     quality: 'high',
     reducedMotion: false,
     tutorialDone: false,
-    playerName: 'PLAYER',
+    playerName: 'Дружок',
     leaderboard: [],
   }
 }
@@ -61,7 +60,7 @@ export function parseSave(raw: string | null): SaveData {
   const board = Array.isArray(data.leaderboard) ? data.leaderboard : []
   return {
     version: 1,
-    locale: data.locale === 'en' || data.locale === 'zh-CN' ? data.locale : '',
+    locale: 'ru',
     musicVolume: clamp01(data.musicVolume, base.musicVolume),
     sfxVolume: clamp01(data.sfxVolume, base.sfxVolume),
     muted: data.muted === true,

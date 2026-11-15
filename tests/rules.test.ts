@@ -1,73 +1,99 @@
 import { describe, expect, it } from 'vitest'
 import { CONFIG } from '../src/game/config'
-import { collect, createRun, damage, formatClock, stars, tick } from '../src/game/rules'
+import { QUESTS, TOTAL_ITEMS } from '../src/game/quests'
+import {
+  acceptQuest, allDone, completedCount, createJourney, formatDuration, isReady,
+  missingFor, pickup, starsOf, tick, turnIn,
+} from '../src/game/rules'
 
-describe('run rules', () => {
-  it('scores cores with a combo multiplier that resets after the window', () => {
-    let s = createRun(10)
-    let r = collect(s)
-    expect(r.points).toBe(CONFIG.score.core)
-    s = collect(r.state).state
-    expect(s.combo).toBe(2)
-    expect(s.score).toBe(CONFIG.score.core * 3)
-    s = tick(s, CONFIG.score.comboWindow + 0.01)
-    expect(s.combo).toBe(0)
-    r = collect(s)
-    expect(r.points).toBe(CONFIG.score.core)
+function completeAll() {
+  let s = createJourney()
+  for (const quest of QUESTS) {
+    s = acceptQuest(s, quest.id).state
+    for (let i = 0; i < quest.need; i += 1) s = pickup(s, quest.item).state
+    s = turnIn(s, quest.id).state
+  }
+  return s
+}
+
+describe('journey rules', () => {
+  it('starts a friendly journey with no tasks, no items and no losing state', () => {
+    const s = createJourney()
+    expect(s.phase).toBe('playing')
+    expect(s.score).toBe(0)
+    expect(s.totalCollected).toBe(0)
+    expect(completedCount(s)).toBe(0)
+    expect(Object.values(s.quests).every(v => v === 'available')).toBe(true)
+    expect(s).not.toHaveProperty('lives')
+    expect(s).not.toHaveProperty('timeLeft')
   })
 
-  it('caps the combo', () => {
-    let s = createRun(20)
-    for (let i = 0; i < 10; i += 1) s = collect(s).state
-    expect(s.combo).toBe(CONFIG.score.comboMax)
+  it('collects items into the backpack and scores every pickup', () => {
+    let s = createJourney()
+    const r = pickup(s, 'berry')
+    s = r.state
+    expect(r.gained).toBe(1)
+    expect(s.inventory.berry).toBe(1)
+    expect(s.totalCollected).toBe(1)
+    expect(s.score).toBe(CONFIG.quest.itemPoints)
   })
 
-  it('wins on the last core and adds time and life bonuses', () => {
-    let s = createRun(1)
-    s = tick(s, 10)
-    s = collect(s).state
+  it('requires enough items before a resident accepts a task turn-in', () => {
+    let s = acceptQuest(createJourney(), 'grandma').state
+    expect(s.quests.grandma).toBe('active')
+    expect(missingFor(s, 'grandma')).toBe(5)
+    expect(isReady(s, 'grandma')).toBe(false)
+    expect(turnIn(s, 'grandma').completed).toBe(false)
+    for (let i = 0; i < 4; i += 1) s = pickup(s, 'berry').state
+    expect(missingFor(s, 'grandma')).toBe(1)
+    expect(turnIn(s, 'grandma').completed).toBe(false)
+    s = pickup(s, 'berry').state
+    expect(isReady(s, 'grandma')).toBe(true)
+    const done = turnIn(s, 'grandma')
+    expect(done.completed).toBe(true)
+    expect(done.state.quests.grandma).toBe('done')
+    expect(done.state.inventory.berry).toBe(5)
+    expect(done.state.phase).toBe('playing')
+  })
+
+  it('does not accept the same task twice and keeps completed tasks completed', () => {
+    let s = acceptQuest(createJourney(), 'fairy').state
+    expect(acceptQuest(s, 'fairy').accepted).toBe(false)
+    for (let i = 0; i < 4; i += 1) s = pickup(s, 'crystal').state
+    s = turnIn(s, 'fairy').state
+    expect(acceptQuest(s, 'fairy').accepted).toBe(false)
+    expect(turnIn(s, 'fairy').completed).toBe(false)
+  })
+
+  it('celebrates only after all four residents are helped, with a fixed fair score', () => {
+    let s = completeAll()
     expect(s.phase).toBe('won')
-    expect(s.timeBonus).toBe(Math.ceil(CONFIG.run.seconds - 10) * CONFIG.score.timeBonus)
-    expect(s.lifeBonus).toBe(CONFIG.run.lives * CONFIG.score.lifeBonus)
-    expect(s.score).toBe(CONFIG.score.core + s.timeBonus + s.lifeBonus)
+    expect(allDone(s)).toBe(true)
+    expect(completedCount(s)).toBe(QUESTS.length)
+    expect(s.totalCollected).toBe(TOTAL_ITEMS)
+    expect(s.score).toBe(TOTAL_ITEMS * CONFIG.quest.itemPoints + QUESTS.length * CONFIG.quest.questPoints + CONFIG.quest.finishBonus)
+    expect(starsOf(s)).toBe(3)
+    expect(s.phase).not.toBe('lost')
   })
 
-  it('ignores hits while invulnerable but not falls', () => {
-    let s = createRun(5)
-    s = damage(s).state
-    expect(s.lives).toBe(CONFIG.run.lives - 1)
-    expect(damage(s).hurt).toBe(false)
-    s = damage(s, true).state
-    expect(s.lives).toBe(CONFIG.run.lives - 2)
+  it('freezes time and pickups after the celebration starts', () => {
+    const won = completeAll()
+    expect(tick(won, 10)).toBe(won)
+    expect(pickup(won, 'star').gained).toBe(0)
   })
 
-  it('loses on zero lives or when time runs out', () => {
-    let s = createRun(5)
-    for (let i = 0; i < CONFIG.run.lives; i += 1) s = damage(s, true).state
-    expect(s.phase).toBe('lost')
-    expect(s.loseReason).toBe('lives')
-    const t = tick(createRun(5), CONFIG.run.seconds)
-    expect(t.phase).toBe('lost')
-    expect(t.loseReason).toBe('time')
+  it('counts the walk time until the celebration, without a time limit', () => {
+    let s = tick(createJourney(), 12.5)
+    expect(s.elapsed).toBe(12.5)
+    s = tick(s, 3600)
+    expect(s.elapsed).toBe(3612.5)
+    expect(s.phase).toBe('playing')
+    expect(starsOf(s)).toBe(0)
   })
 
-  it('freezes state after the run ends', () => {
-    const lost = tick(createRun(5), CONFIG.run.seconds)
-    expect(tick(lost, 1)).toBe(lost)
-    expect(collect(lost).points).toBe(0)
-  })
-
-  it('rates stars', () => {
-    let s = collect(createRun(1)).state
-    expect(stars(s)).toBe(3)
-    s = collect(damage(tick(createRun(1), CONFIG.run.seconds * 0.6)).state).state
-    expect(stars(s)).toBe(1)
-    expect(stars(createRun(1))).toBe(0)
-  })
-
-  it('formats the clock', () => {
-    expect(formatClock(150)).toBe('2:30')
-    expect(formatClock(59.2)).toBe('1:00')
-    expect(formatClock(0)).toBe('0:00')
+  it('formats a friendly duration', () => {
+    expect(formatDuration(0)).toBe('0:00')
+    expect(formatDuration(59.9)).toBe('0:59')
+    expect(formatDuration(150)).toBe('2:30')
   })
 })

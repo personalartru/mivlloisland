@@ -1,16 +1,15 @@
 /**
- * Unified input: keyboard + mouse (pointer lock), gamepad and touch all feed one action state.
+ * Unified input: keyboard + mouse drag, gamepad and touch all feed one action state.
  * Gameplay reads `move`, `look` and `pressed()/held()`; it never checks raw keys.
  *
  * Call `endFrame()` once per rendered frame after gameplay consumed edge-triggered presses.
  */
-export type Action = 'jump' | 'sprint' | 'dash' | 'pause' | 'confirm' | 'back' | 'interact'
+export type Action = 'jump' | 'sprint' | 'pause' | 'confirm' | 'back' | 'interact'
 export type InputMethod = 'keyboard' | 'gamepad' | 'touch'
 
 const KEY_BINDINGS: Record<Action, string[]> = {
   jump: ['Space'],
   sprint: ['ShiftLeft', 'ShiftRight'],
-  dash: ['KeyF', 'KeyJ'],
   pause: ['Escape', 'KeyP'],
   confirm: ['Enter', 'NumpadEnter'],
   // Menus handle Escape/Backspace themselves via DOM keydown; `back` is the gamepad B button.
@@ -19,7 +18,7 @@ const KEY_BINDINGS: Record<Action, string[]> = {
 }
 const MOVE_KEYS = { up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'] }
 // Standard gamepad mapping: A=0, B=1, X=2, Y=3, LB=4, RB=5, RT=7, Start=9, L3=10.
-const PAD_BINDINGS: Record<Action, number[]> = { jump: [0], sprint: [4, 10], dash: [2, 5, 7], pause: [9], confirm: [0], back: [1], interact: [3] }
+const PAD_BINDINGS: Record<Action, number[]> = { jump: [0], sprint: [4, 10], pause: [9], confirm: [0], back: [1], interact: [3] }
 
 export class Input {
   /** Movement intent in [-1, 1]: x = strafe right, y = forward. */
@@ -39,6 +38,7 @@ export class Input {
   private padPrev: boolean[] = []
   private padIndex = -1
   private padId = ''
+  private dragging = false
   private listeners: Array<() => void> = []
 
   constructor(private readonly canvas: HTMLCanvasElement) {
@@ -58,31 +58,25 @@ export class Input {
       if (!typing && (e.code === 'Space' || e.code.startsWith('Arrow'))) e.preventDefault()
     })
     on(window, 'keyup', e => this.keys.delete(e.code))
-    on(window, 'blur', () => this.keys.clear())
+    on(window, 'blur', () => { this.keys.clear(); this.dragging = false })
+    on(window, 'mousedown', e => { if (e.target === canvas) this.dragging = true })
+    on(window, 'mouseup', () => { this.dragging = false })
     on(window, 'gamepaddisconnected', e => {
       if (e.gamepad.index === this.padIndex) this.resetPad()
     })
-    on(window, 'mousedown', e => {
-      // Left click dashes while the mouse is captured for camera look.
-      if (document.pointerLockElement === canvas && e.button === 0) this.pressed_.add('dash')
-    })
     on(window, 'mousemove', e => {
-      if (document.pointerLockElement !== canvas) return
+      if (document.pointerLockElement !== canvas && !this.dragging) return
       this.look.x += e.movementX * 0.0022
       this.look.y += e.movementY * 0.0022
     })
   }
 
-  /** Request pointer lock for mouse look (must be called from a user gesture). */
+  /** Keep the canvas ready for keyboard play; mouse look uses drag, never pointer lock. */
   lockPointer(): void {
-    if (this.method !== 'touch' && document.pointerLockElement !== this.canvas) {
-      this.canvas.requestPointerLock?.()?.catch?.(() => undefined)
-    }
+    this.canvas.focus?.()
   }
 
-  unlockPointer(): void {
-    if (document.pointerLockElement) document.exitPointerLock()
-  }
+  unlockPointer(): void {}
 
   /** Touch controls feed these from the on-screen joystick and buttons. */
   setTouchMove(x: number, y: number): void {

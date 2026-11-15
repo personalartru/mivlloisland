@@ -22,10 +22,9 @@ beforeEach(() => {
   Object.assign(state, {
     input, mode: 'playing', tutorial: 'look', tutorialLook: 0, time: 0,
     physics: { sync() {} }, player: { root: { position: new THREE.Vector3() }, animate() {} },
-    cam: { update: vi.fn() }, run: { invulnerable: 0, timeLeft: 100 },
-    cores: { animate() {} }, drones: { animate() {} }, fx: { update() {} },
-    world: { update() {} }, renderer: { render() {} }, groundBelow: () => null,
-    hooks: { hint },
+    cam: { update: vi.fn() }, items: { animate() {} }, npcs: { update() {} },
+    fx: { update() {} }, world: { update() {} }, renderer: { render() {} },
+    groundBelow: () => null, hooks: { hint },
   })
 })
 afterEach(() => { input.dispose(); vi.unstubAllGlobals() })
@@ -36,28 +35,31 @@ describe('look tutorial', () => {
     it(`advances with a diagonal right stick at ${hz} Hz`, () => {
       axes[2] = axes[3] = Math.SQRT1_2
       for (let i = 0; i < hz; i++) frame(hz)
-      expect(hint).toHaveBeenCalledExactlyOnceWith('jump')
+      expect(hint).toHaveBeenCalledExactlyOnceWith('talk')
     })
     it(`advances with a single-axis right stick at ${hz} Hz, including low sensitivity`, () => {
       input.sensitivity = 0.25
       axes[2] = 0.5
       for (let i = 0; i < hz; i++) frame(hz)
-      expect(hint).toHaveBeenCalledExactlyOnceWith('jump')
-      expect(state.tutorial).toBe('jump')
+      expect(hint).toHaveBeenCalledExactlyOnceWith('talk')
+      expect(state.tutorial).toBe('talk')
     })
   }
+
   it('does not advance from stick drift within the dead zone', () => {
     axes[2] = 0.1
     for (let i = 0; i < 144; i++) frame(144)
     expect(hint).not.toHaveBeenCalled()
   })
+
   it('preserves mouse-sized look deltas and the delta passed to the camera', () => {
     input.look.x = 0.06
     game.render(0, 1 / 144)
-    expect(hint).toHaveBeenCalledExactlyOnceWith('jump')
+    expect(hint).toHaveBeenCalledExactlyOnceWith('talk')
     expect(state.cam.update.mock.calls[0][1]).toEqual({ x: 0.06, y: 0 })
   })
-  it('does not count movement in another hint or while paused', () => {
+
+  it('does not count looking in another hint or while paused', () => {
     state.tutorial = 'move'; axes[2] = 1
     frame(60)
     state.advanceTutorial('look'); hint.mockClear()
@@ -68,6 +70,7 @@ describe('look tutorial', () => {
     expect(hint).not.toHaveBeenCalled()
     expect(state.tutorialLook).toBe(0)
   })
+
   it('clears partial progress when entering a new tutorial stage', () => {
     input.look.x = 0.04; game.render(0, 1 / 60)
     expect(hint).not.toHaveBeenCalled()

@@ -1,11 +1,22 @@
 /**
  * Web Audio mixer with music and SFX buses. Browsers only allow audio after a user gesture, so
- * call `unlock()` from the first click/key press (the title screen does this).
- *
- * The starter ships no audio files: SFX are synthesized and the music is a generative ambient
- * pad. To use recorded assets, `load(url)` an AudioBuffer and `playBuffer()` it on either bus.
+ * `unlock()` runs from the first click/key press. Catalog cues stream from local WAV files with
+ * synthesized fallbacks for jump/land/talk and for offline loading failures.
  */
-export type Sfx = 'pickup' | 'jump' | 'land' | 'hurt' | 'ui' | 'win' | 'lose' | 'dash'
+export type Sfx = 'pickup' | 'jump' | 'land' | 'ui' | 'talk' | 'quest' | 'win'
+
+const AUDIO_URLS = import.meta.env.DEV ? {
+  pickup: '/assets/audio/magic/spell.wav',
+  ui: '/assets/audio/ui/ready-click-01.wav',
+  quest: '/assets/audio/magic/chimes.wav',
+  win: '/assets/audio/magic/success.wav',
+} : {
+  pickup: '/manus-storage/game/sha256/0eb8fcc00ec39b6c612c36d0b2f996d2b3ceff10d8b84713726160afefd18ea3.wav',
+  ui: '/manus-storage/game/sha256/e62b419e13f681d402640455336ab383d2b2c4a187954b1dd42fb62a79a81827.wav',
+  quest: '/manus-storage/game/sha256/3d3bde1cc09266e52899c61cc70138d5ff71ebc83a39635717a10029fdc536f4.wav',
+  win: '/manus-storage/game/sha256/5399c4f5ff1435df6d9da3990fbebd09ebd6769472bb50b94ae5fc5ef84f7084.wav',
+}
+const CATALOG: Partial<Record<Sfx, string>> = { ...AUDIO_URLS }
 
 export class Audio {
   readonly ctx: AudioContext
@@ -15,6 +26,8 @@ export class Audio {
   private musicTimer = 0
   private musicOn = false
   private buffers = new Map<string, AudioBuffer>()
+  private catalogLoading = false
+  private catalogLoaded = false
 
   constructor() {
     this.ctx = new AudioContext()
@@ -28,13 +41,18 @@ export class Audio {
 
   unlock(): void {
     if (this.ctx.state === 'suspended') void this.ctx.resume()
+    if (!this.catalogLoading && !this.catalogLoaded) {
+      this.catalogLoading = true
+      void Promise.all(Object.values(CATALOG).map(url => this.load(url).catch(() => null)))
+        .then(() => { this.catalogLoaded = true })
+        .finally(() => { this.catalogLoading = false })
+    }
   }
 
-  /** Volumes in 0..1. */
   setVolumes(music: number, sfx: number, muted = false): void {
     const t = this.ctx.currentTime
-    this.music.gain.setTargetAtTime(muted ? 0 : music * 0.55, t, 0.05)
-    this.sfx.gain.setTargetAtTime(muted ? 0 : sfx * 0.8, t, 0.05)
+    this.music.gain.setTargetAtTime(muted ? 0 : music * 0.45, t, 0.05)
+    this.sfx.gain.setTargetAtTime(muted ? 0 : sfx * 0.7, t, 0.05)
   }
 
   async load(url: string): Promise<AudioBuffer> {
@@ -47,69 +65,102 @@ export class Audio {
   }
 
   playBuffer(buffer: AudioBuffer, bus: 'music' | 'sfx' = 'sfx', loop = false): AudioBufferSourceNode {
-    const src = this.ctx.createBufferSource()
-    src.buffer = buffer
-    src.loop = loop
-    src.connect(bus === 'music' ? this.music : this.sfx)
-    src.start()
-    return src
+    const source = this.ctx.createBufferSource()
+    source.buffer = buffer
+    source.loop = loop
+    source.connect(bus === 'music' ? this.music : this.sfx)
+    source.start()
+    return source
   }
 
   play(name: Sfx): void {
     if (this.ctx.state !== 'running') return
+    const url = CATALOG[name]
+    const buffer = url ? this.buffers.get(url) : undefined
+    if (buffer) {
+      this.playBuffer(buffer)
+      return
+    }
     const t = this.ctx.currentTime
     const tone = (freq: number, end: number, dur: number, type: OscillatorType, vol: number, delay = 0) => {
-      const o = this.ctx.createOscillator()
-      const g = this.ctx.createGain()
-      o.type = type
-      o.frequency.setValueAtTime(freq, t + delay)
-      o.frequency.exponentialRampToValueAtTime(Math.max(end, 20), t + delay + dur)
-      g.gain.setValueAtTime(0.0001, t + delay)
-      g.gain.exponentialRampToValueAtTime(vol, t + delay + 0.012)
-      g.gain.exponentialRampToValueAtTime(0.0001, t + delay + dur)
-      o.connect(g).connect(this.sfx)
-      o.start(t + delay)
-      o.stop(t + delay + dur + 0.05)
+      const oscillator = this.ctx.createOscillator()
+      const gain = this.ctx.createGain()
+      oscillator.type = type
+      oscillator.frequency.setValueAtTime(freq, t + delay)
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(end, 20), t + delay + dur)
+      gain.gain.setValueAtTime(0.0001, t + delay)
+      gain.gain.exponentialRampToValueAtTime(vol, t + delay + 0.012)
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + delay + dur)
+      oscillator.connect(gain).connect(this.sfx)
+      oscillator.start(t + delay)
+      oscillator.stop(t + delay + dur + 0.05)
     }
     switch (name) {
-      case 'pickup': tone(880, 1320, 0.12, 'triangle', 0.35); tone(1320, 1760, 0.16, 'sine', 0.25, 0.06); break
-      case 'jump': tone(300, 620, 0.14, 'square', 0.12); break
-      case 'land': tone(160, 70, 0.1, 'sine', 0.25); break
-      case 'hurt': tone(220, 90, 0.28, 'sawtooth', 0.22); break
-      case 'ui': tone(660, 700, 0.06, 'triangle', 0.18); break
-      case 'dash': tone(500, 180, 0.18, 'sawtooth', 0.1); break
-      case 'win': [523, 659, 784, 1047].forEach((f, i) => tone(f, f * 1.01, 0.3, 'triangle', 0.25, i * 0.11)); break
-      case 'lose': [392, 330, 262].forEach((f, i) => tone(f, f * 0.98, 0.38, 'sine', 0.25, i * 0.16)); break
+      case 'pickup':
+        tone(784, 988, 0.12, 'triangle', 0.26)
+        tone(1175, 1568, 0.18, 'sine', 0.2, 0.07)
+        break
+      case 'jump':
+        tone(330, 560, 0.13, 'triangle', 0.12)
+        break
+      case 'land':
+        tone(150, 70, 0.1, 'sine', 0.2)
+        break
+      case 'ui':
+        tone(620, 700, 0.05, 'triangle', 0.12)
+        break
+      case 'talk':
+        tone(520, 660, 0.09, 'sine', 0.18)
+        tone(780, 880, 0.12, 'sine', 0.14, 0.08)
+        break
+      case 'quest':
+        [523, 659, 784, 1047].forEach((freq, i) => tone(freq, freq * 1.01, 0.24, 'triangle', 0.24, i * 0.09))
+        break
+      case 'win':
+        [392, 523, 659, 784, 1047].forEach((freq, i) => tone(freq, freq * 1.01, 0.34, 'triangle', 0.24, i * 0.12))
+        break
     }
   }
 
-  /** Generative ambient pad: slow chord changes on a pentatonic set, scheduled ahead of time. */
+  /** Generative music box: a gentle five-note waltz with a soft pad underneath. */
   startMusic(): void {
     if (this.musicOn) return
     this.musicOn = true
-    const chords = [[220, 277.2, 329.6], [196, 246.9, 293.7], [174.6, 220, 261.6], [196, 261.6, 329.6]]
-    let bar = 0
+    const melody = [523.3, 659.3, 784, 659.3, 587.3, 698.5, 880, 698.5, 493.9, 587.3, 740, 587.3, 523.3, 659.3, 784, 1046.5]
+    let step = 0
     const schedule = () => {
       if (!this.musicOn) return
-      const t = this.ctx.currentTime + 0.05
-      const chord = chords[bar % chords.length]
-      for (const f of chord) {
-        for (const detune of [-6, 6]) {
-          const o = this.ctx.createOscillator()
-          const g = this.ctx.createGain()
-          o.type = 'sine'
-          o.frequency.value = f / 2
-          o.detune.value = detune
-          g.gain.setValueAtTime(0.0001, t)
-          g.gain.linearRampToValueAtTime(0.05, t + 1.2)
-          g.gain.linearRampToValueAtTime(0.0001, t + 4.2)
-          o.connect(g).connect(this.music)
-          o.start(t)
-          o.stop(t + 4.4)
+      const t = this.ctx.currentTime + 0.08
+      const note = melody[step % melody.length]
+      for (const [freq, vol, delay] of [[note, 0.055, 0], [note / 2, 0.03, 0.01]] as const) {
+        const oscillator = this.ctx.createOscillator()
+        const gain = this.ctx.createGain()
+        oscillator.type = 'triangle'
+        oscillator.frequency.value = freq
+        gain.gain.setValueAtTime(0.0001, t + delay)
+        gain.gain.linearRampToValueAtTime(vol, t + delay + 0.02)
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + delay + 1.1)
+        oscillator.connect(gain).connect(this.music)
+        oscillator.start(t + delay)
+        oscillator.stop(t + delay + 1.15)
+      }
+      if (step % 4 === 0) {
+        const chord = [261.6, 329.6, 392]
+        for (const freq of chord) {
+          const oscillator = this.ctx.createOscillator()
+          const gain = this.ctx.createGain()
+          oscillator.type = 'sine'
+          oscillator.frequency.value = freq / 2
+          gain.gain.setValueAtTime(0.0001, t)
+          gain.gain.linearRampToValueAtTime(0.025, t + 0.6)
+          gain.gain.linearRampToValueAtTime(0.0001, t + 2.6)
+          oscillator.connect(gain).connect(this.music)
+          oscillator.start(t)
+          oscillator.stop(t + 2.7)
         }
       }
-      bar += 1
-      this.musicTimer = window.setTimeout(schedule, 3600)
+      step += 1
+      this.musicTimer = window.setTimeout(schedule, 420)
     }
     schedule()
   }

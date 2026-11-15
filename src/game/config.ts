@@ -3,56 +3,38 @@
  * the same values so rule changes stay covered.
  */
 export const DEFAULT_CONFIG = {
-  run: {
-    seconds: 150,
-    lives: 3,
-    /** Seconds of invulnerability after a hit. */
-    invulnerable: 1.6,
-    /** Falling below this height costs a life and respawns at the last checkpoint. */
-    killY: -18,
-  },
-  score: {
-    core: 100,
-    /** Consecutive pickups within `comboWindow` seconds raise the multiplier up to `comboMax`. */
-    comboWindow: 3.5,
-    comboMax: 5,
-    /** Bonus per second left on the clock when every core is collected. */
-    timeBonus: 25,
-    lifeBonus: 500,
-  },
   player: {
-    radius: 0.42,
-    halfHeight: 0.5,
-    walkSpeed: 7,
-    sprintSpeed: 11,
+    radius: 0.38,
+    halfHeight: 0.45,
+    walkSpeed: 5.2,
+    sprintSpeed: 7.2,
     acceleration: 60,
-    airControl: 0.45,
-    jumpSpeed: 10.5,
-    gravity: -30,
+    airControl: 0.5,
+    jumpSpeed: 8.4,
+    gravity: -26,
     /** Extra gravity when the jump button is released early, for variable jump height. */
-    lowJumpGravity: -58,
-    maxFall: -40,
-    coyoteTime: 0.12,
-    jumpBuffer: 0.14,
-    dashSpeed: 22,
-    dashTime: 0.16,
-    dashCooldown: 0.9,
-    turnSpeed: 14,
+    lowJumpGravity: -46,
+    maxFall: -30,
+    coyoteTime: 0.14,
+    jumpBuffer: 0.16,
+    turnSpeed: 12,
   },
   camera: {
-    distance: 6.4,
-    height: 2.4,
-    minPitch: -0.35,
-    maxPitch: 1.1,
-    follow: 10,
-    fov: 62,
+    distance: 6.6,
+    height: 2.6,
+    minPitch: 0.05,
+    maxPitch: 0.95,
+    follow: 9,
+    fov: 60,
   },
-  drones: {
-    speed: 3.2,
-    radius: 0.7,
-    /** Drones speed up as the clock runs down. */
-    rageSpeed: 5,
-    rageAt: 45,
+  quest: {
+    /** Items are picked up when their centre is this close to the player's centre. */
+    pickupRadius: 1.15,
+    /** Talk distance measured on the ground plane. */
+    talkRadius: 3,
+    itemPoints: 100,
+    questPoints: 500,
+    finishBonus: 1000,
   },
 } as const
 

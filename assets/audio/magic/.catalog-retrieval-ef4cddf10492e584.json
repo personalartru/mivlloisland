@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "archiveSha256": "d8fc106f90adfd9c910579dc962a73c5476c868bd1fa884cf4300ae198250598",
+  "archiveSizeBytes": 623909,
+  "members": [
+    {
+      "member": "chimes.wav",
+      "sha256": "3d3bde1cc09266e52899c61cc70138d5ff71ebc83a39635717a10029fdc536f4",
+      "sizeBytes": 93974
+    },
+    {
+      "member": "spell.wav",
+      "sha256": "0eb8fcc00ec39b6c612c36d0b2f996d2b3ceff10d8b84713726160afefd18ea3",
+      "sizeBytes": 91528
+    },
+    {
+      "member": "success.wav",
+      "sha256": "5399c4f5ff1435df6d9da3990fbebd09ebd6769472bb50b94ae5fc5ef84f7084",
+      "sizeBytes": 70418
+    }
+  ],
+  "dependencyCoverage": "glb-gltf-obj-mtl-textureatlas-bmfont-tiled",
+  "limitations": [],
+  "catalogSources": [
+    {
+      "snapshotId": "catalog-20260924-japan-characters-scene-removal-v1",
+      "catalogPath": "sfx/magic/itch-io-polar-34-magic-sound-effects/assets.zip"
+    }
+  ],
+  "catalogMetadata": [
+    {
+      "snapshotId": "catalog-20260924-japan-characters-scene-removal-v1",
+      "catalogPath": "sfx/magic/itch-io-polar-34-magic-sound-effects/assets.zip",
+      "metadataPath": "sfx/magic/itch-io-polar-34-magic-sound-effects/metadata.json",
+      "metadataSha256": "2266cb2621c27212831e8288cffcd91b1dc607dee2b0c4b57b1008fce45800d9",
+      "archiveSha256": "d8fc106f90adfd9c910579dc962a73c5476c868bd1fa884cf4300ae198250598",
+      "source": {
+        "packId": "itch-io:polar-34-magic-sound-effects",
+        "name": "Magic Sound Effects",
+        "url": "https://polar-34.itch.io/magic-sound-effects",
+        "metadataPath": "sfx/magic/itch-io-polar-34-magic-sound-effects/metadata.json",
+        "metadataSha256": "sha256:2266cb2621c27212831e8288cffcd91b1dc607dee2b0c4b57b1008fce45800d9"
+      },
+      "license": {
+        "id": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "attributionRequired": false,
+        "copyrightNoticeRequired": false,
+        "licenseNoticeRequired": false,
+        "modificationNoticeRequired": false,
+        "commercialUseAllowed": true,
+        "editableProjectDistributionAllowed": true,
+        "reusableTemplateDistributionAllowed": true
+      }
+    }
+  ]
+}

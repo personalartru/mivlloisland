@@ -2,3 +2,24 @@ node_modules/
 dist/
 shots/
 /.manus-webdev/preview-identity.json
+# Assets restored from assets.lock.json
+/assets/models/item-berry.glb
+/assets/models/item-crystal.glb
+/assets/models/item-mushroom.glb
+/assets/models/item-star.glb
+/assets/models/npc-cat.glb
+/assets/models/npc-fairy.glb
+/assets/models/npc-grandma.glb
+/assets/models/npc-mushroom.glb
+/assets/models/plyuhik-animated.glb
+/assets/models/plyuhik-rigged.glb
+/assets/models/plyuhik.glb
+/assets/models/prop-cottage.glb
+/assets/models/prop-tree.glb
+# Assets restored from assets.lock.json
+/assets/audio/magic/chimes.wav
+/assets/audio/magic/spell.wav
+/assets/audio/magic/success.wav
+/assets/audio/ui/ready-click-01.wav
+/assets/share/favicon.png
+/assets/share/og.png
