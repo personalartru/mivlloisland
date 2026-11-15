@@ -76,7 +76,7 @@ const state = page => page.evaluate(() => {
 async function completeJourney(page) {
   await page.evaluate(() => {
     const g = window.__game.game
-    const plan = [['fairy', 'crystal'], ['grandma', 'berry'], ['mushroom', 'mushroom'], ['cat', 'star']]
+    const plan = g.content.quests.map(q => [q.id, q.item])
     for (const [id, item] of plan) {
       if (g.journey.quests[id] === 'available') {
         g.openDialog(id)
@@ -149,7 +149,31 @@ try {
   await page.screenshot({ path: `${out}/05-results.png` })
   const done = await state(page)
   if (done.journey.phase !== 'won') throw new Error(`expected a won journey, got ${done.journey.phase}`)
-  if (done.journey.score !== 4600) throw new Error(`unexpected friendship score: ${done.journey.score}`)
+  if (done.journey.score !== 4600) throw new Error(`unexpected island score: ${done.journey.score}`)
+  const unlocked = await page.evaluate(() => window.__game.save.data.planetUnlocked)
+  if (!unlocked) throw new Error('the cosmic level did not unlock after the island')
+
+  // Second level: the cosmic planet must be reachable from the results screen and completable.
+  await page.click('[data-screen="results"] [data-action="switch-level"]')
+  await page.waitForSelector('[data-screen="hud"].is-active')
+  await page.waitForTimeout(1_500)
+  const planet = await state(page)
+  if (planet.journey.level !== 'planet') throw new Error(`expected the planet level, got ${planet.journey.level}`)
+  await page.screenshot({ path: `${out}/05b-planet.png` })
+  const planetHud = await page.evaluate(() => ({
+    quests: window.__game.game.content.quests.length,
+    items: window.__game.game.content.totalItems,
+    slots: document.querySelectorAll('[data-screen="hud"] .inv-item').length,
+  }))
+  if (planetHud.quests !== 6 || planetHud.slots !== 6) throw new Error(`unexpected cosmic HUD: ${JSON.stringify(planetHud)}`)
+  if (planetHud.items !== 24) throw new Error(`expected twenty-four cosmic wonders, got ${planetHud.items}`)
+  await completeJourney(page)
+  await page.waitForFunction(() => document.querySelector('[data-screen="results"]')?.classList.contains('is-active'), null, { polling: 100, timeout: 10_000 })
+  await page.waitForTimeout(1_200)
+  await page.screenshot({ path: `${out}/05c-planet-results.png` })
+  const cosmic = await state(page)
+  if (cosmic.journey.phase !== 'won') throw new Error(`expected a won cosmic journey, got ${cosmic.journey.phase}`)
+  if (cosmic.journey.score !== 6400) throw new Error(`unexpected cosmic score: ${cosmic.journey.score}`)
   await desktop.close()
 
   const phone = await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'ru-RU' })

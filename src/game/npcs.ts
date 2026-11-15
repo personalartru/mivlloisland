@@ -1,11 +1,9 @@
 import * as THREE from 'three'
-import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { Physics } from '../engine/physics'
-import { instantiate } from './models'
-import { QUESTS, questById, type QuestId } from './quests'
+import { questOf, type LevelContent, type QuestId } from './content'
 import type { JourneyState } from './rules'
 import { questBubbleTexture } from './textures'
-import { WORLD } from './world'
+import type { NpcVisual } from './visual-types'
 
 export type NpcInfo = { id: QuestId; nameKey: string; position: THREE.Vector3; distance: number }
 
@@ -18,49 +16,62 @@ type Npc = {
   phase: number
   idleYaw: number
   bubbleKey: string
+  bob: number
+  hover: number
+  tick?: NpcVisual['tick']
 }
 
-const HEIGHTS: Record<QuestId, number> = { grandma: 1.55, fairy: 1.7, mushroom: 1.45, cat: 1.2 }
-
-/** The four friendly residents. They turn toward Plyuhik when he comes close and show their task. */
+/**
+ * The friendly residents of one level. They turn toward the player when he comes close, float
+ * gently and show their task in a bubble above their head.
+ */
 export class Npcs {
   readonly group = new THREE.Group()
   private readonly npcs: Npc[] = []
 
-  constructor(physics: Physics, models: Record<QuestId, GLTF>) {
-    for (const [i, quest] of QUESTS.entries()) {
-      const spot = WORLD.npcSpots[quest.id]
+  constructor(physics: Physics, private readonly content: LevelContent, visuals: Partial<Record<QuestId, NpcVisual>>) {
+    for (const [i, quest] of content.quests.entries()) {
+      const spot = content.layout.npcSpots[quest.id]
+      const visual = visuals[quest.id]
+      if (!spot || !visual) continue
       const root = new THREE.Group()
       root.position.copy(spot)
-      const visual = instantiate(models[quest.id], { height: HEIGHTS[quest.id] })
-      const idleYaw = Math.atan2(WORLD.spawn.x - spot.x, WORLD.spawn.z - spot.z)
+      const model = visual.build()
+      model.position.y = visual.hover ?? 0
+      const idleYaw = Math.atan2(content.layout.spawn.x - spot.x, content.layout.spawn.z - spot.z)
       root.rotation.y = idleYaw
-      root.add(visual)
+      root.add(model)
 
       const bubble = new THREE.Sprite(new THREE.SpriteMaterial({
         map: questBubbleTexture('available', quest.item, 0, quest.need), transparent: true, depthWrite: false,
       }))
-      bubble.scale.setScalar(1.15)
-      bubble.position.y = HEIGHTS[quest.id] + 0.75
+      bubble.scale.setScalar(0.78)
+      bubble.position.y = visual.height + 0.62
       root.add(bubble)
 
       this.group.add(root)
-      this.npcs.push({ id: quest.id, root, visual, bubble, baseHeight: HEIGHTS[quest.id], phase: i * 1.4, idleYaw, bubbleKey: '' })
-      physics.addStaticCylinder(new THREE.Vector3(spot.x, 0.7, spot.z), 0.45, 1.4)
+      this.npcs.push({
+        id: quest.id, root, visual: model, bubble, baseHeight: visual.height,
+        phase: i * 1.4, idleYaw, bubbleKey: '',
+        bob: visual.bob ?? 0.035, hover: visual.hover ?? 0, tick: visual.tick,
+      })
+      physics.addStaticCylinder(new THREE.Vector3(spot.x, 0.7, spot.z), visual.collider ?? 0.45, 1.4)
     }
   }
 
   update(journey: JourneyState, player: THREE.Vector3, dt: number, time: number): void {
     for (const npc of this.npcs) {
-      const quest = questById.get(npc.id)!
+      const quest = questOf(this.content, npc.id)
+      if (!quest) continue
       const dx = player.x - npc.root.position.x
       const dz = player.z - npc.root.position.z
       const distance = Math.hypot(dx, dz)
       const targetYaw = distance < 8 ? Math.atan2(dx, dz) : npc.idleYaw
       npc.root.rotation.y = dampAngle(npc.root.rotation.y, targetYaw, 5, dt)
-      npc.visual.position.y = Math.sin(time * 1.7 + npc.phase) * 0.035
-      npc.bubble.position.y = npc.baseHeight + 0.75 + Math.sin(time * 2.1 + npc.phase) * 0.07
-      const pulse = 1.12 + Math.sin(time * 2.6 + npc.phase) * 0.05
+      npc.visual.position.y = npc.hover + Math.sin(time * 1.7 + npc.phase) * npc.bob
+      npc.tick?.(npc.visual, time)
+      npc.bubble.position.y = npc.baseHeight + 0.62 + Math.sin(time * 2.1 + npc.phase) * 0.06
+      const pulse = 0.78 + Math.sin(time * 2.6 + npc.phase) * 0.035
       npc.bubble.scale.setScalar(pulse)
 
       const status = journey.quests[npc.id]
@@ -85,7 +96,7 @@ export class Npcs {
       const position = npc.root.position
       const distance = Math.hypot(position.x - pos.x, position.z - pos.z)
       if (distance <= radius && (!best || distance < best.distance)) {
-        best = { id: npc.id, nameKey: questById.get(npc.id)!.nameKey, position: position.clone(), distance }
+        best = { id: npc.id, nameKey: questOf(this.content, npc.id)!.nameKey, position: position.clone(), distance }
       }
     }
     return best

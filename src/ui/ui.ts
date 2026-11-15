@@ -3,10 +3,10 @@ import type { I18n } from '../engine/i18n'
 import type { Input } from '../engine/input'
 import { insertScore, type Quality, type SaveData, type SaveStore } from '../engine/save'
 import type { CompassTarget, DialogAction, DialogData, DialogVoiceLine, Hint } from '../game/game'
-import { ITEMS, ITEM_KINDS, QUESTS, questById, type QuestId } from '../game/quests'
+import { CONTENT, itemDef, questOf, type ItemKind, type LevelContent, type QuestId } from '../game/content'
 import { formatDuration, starsOf, type JourneyState } from '../game/rules'
 import type { NpcInfo } from '../game/npcs'
-import type { LevelId } from '../game/levels'
+import { otherLevel, type LevelId } from '../game/levels'
 
 export type Screen = 'boot' | 'title' | 'hud' | 'pause' | 'settings' | 'leaderboard' | 'results' | 'dialog'
 
@@ -16,7 +16,6 @@ export type OnlineEntry = { rank: number; name: string; score: number; seconds: 
 
 export type UiActions = {
   play(level: LevelId): void
-  startPlanet(): void
   pause(): void
   resume(): void
   restart(): void
@@ -27,17 +26,21 @@ export type UiActions = {
   retrySubmit(): void
 }
 
-const ICON = {
+const ICON: Record<ItemKind, string> = {
   berry: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21c-4.6 0-7.6-3.3-7.6-7.1 0-3.3 2.2-6.2 5.2-7.2l2.4-.8 2.4.8c3 .9 5.2 3.9 5.2 7.2C19.6 17.7 16.6 21 12 21Z" fill="#ff5a6e"/><path d="M12 6.5c-.8-1.9-2.4-3-4.5-3.2.2 2.2 1.4 3.7 3.3 4.4ZM12 6.5c.8-1.9 2.4-3 4.5-3.2-.2 2.2-1.4 3.7-3.3 4.4Z" fill="#5fc45f"/><g fill="#fff1c9"><circle cx="9" cy="13" r=".8"/><circle cx="14" cy="12" r=".8"/><circle cx="12" cy="17" r=".8"/></g></svg>',
   crystal: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.8 19 9l-3.3 12.2H8.3L5 9Z" fill="#69d7ff"/><path d="M12 1.8 19 9l-7 2.4Z" fill="#c6f4ff"/><path d="m5 9 7 2.4L8.3 21.2Z" fill="#3eb7e8"/></svg>',
   mushroom: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.4 13h5.2l-.7 8H10Z" fill="#fff0d4"/><path d="M12 3C6.7 3 2.8 7.3 2.8 12c0 1.2.8 2 2 2h14.4c1.2 0 2-.8 2-2C21.2 7.3 17.3 3 12 3Z" fill="#ff7a55"/><g fill="#fff6e5"><circle cx="8" cy="8.5" r="1.4"/><circle cx="15.8" cy="7.8" r="1.1"/><circle cx="16.8" cy="11" r=".9"/></g></svg>',
   star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 1.6 3.1 6.5 7.1.9-5.2 4.9 1.4 7L12 17.5 5.6 20.9l1.4-7L1.8 9l7.1-.9Z" fill="#ffd24a" stroke="#fff6cf" stroke-width="1.1"/></svg>',
-  check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12.8 5.2 5.2L20 6.8" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="2" fill="currentColor"/><rect x="14" y="4" width="5" height="16" rx="2" fill="currentColor"/></svg>',
-  arrow: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 20 21l-8-5-8 5Z" fill="currentColor"/></svg>',
-  sparkle: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 1.8 2.2 7.2L21.5 12l-7.3 3L12 22.2 9.8 15 2.5 12l7.3-3Z" fill="currentColor"/></svg>',
-  play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4.5 20 12 8 19.5Z" fill="currentColor"/></svg>',
+  stardust: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2Z" fill="#ffe07a" stroke="#fff6cf" stroke-width="1.2"/><circle cx="4.4" cy="5" r="1.2" fill="#fff6cf"/><circle cx="19.6" cy="18.6" r="1" fill="#fff6cf"/></svg>',
+  seed: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c4 4.2 6 7.6 6 10.6a6 6 0 0 1-12 0c0-3 2-6.4 6-10.6Z" fill="#7ef0d0"/><path d="M9.6 9.6c.6 2 .6 4.2 0 6.2" stroke="#e6fff8" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M14.4 6.4c2.2-.4 4 .4 5 2-2 .6-4 .2-5-2Z" fill="#8ff7b0"/></svg>',
+  nebula: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#ff9ae6" opacity=".85"/><circle cx="12" cy="12" r="9" fill="none" stroke="#ffd0f6" stroke-width="1.6"/><path d="M12 12c2-3 5-3 6.5-1.2-1.8 1.4-4 1.6-6.5 1.2Z" fill="#b79cff"/><circle cx="8.6" cy="8.6" r="1.6" fill="#fff6ff"/></svg>',
+  shard: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 1.5 18 8.5 15 22.5 6 16.5Z" fill="#9ad8ff"/><path d="M9.5 1.5 18 8.5 12 12Z" fill="#e6f8ff"/></svg>',
+  spark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-2.4 6-6.4 10-12.4 12.6C5 17.8 3 20 2 22c4.6-1.4 8-2 11-4.4C17.6 14 19.6 9 20 4Z" fill="#ffb35c"/><circle cx="17" cy="7" r="4.2" fill="#ffe9a8"/></svg>',
+  lunar: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#e8e6ff"><ellipse cx="12" cy="6.4" rx="2.6" ry="4"/><ellipse cx="17.6" cy="11" rx="4" ry="2.6"/><ellipse cx="14.6" cy="17.4" rx="2.8" ry="3.6" transform="rotate(-40 14.6 17.4)"/><ellipse cx="9.4" cy="17.4" rx="2.8" ry="3.6" transform="rotate(40 9.4 17.4)"/><ellipse cx="6.4" cy="11" rx="4" ry="2.6"/></g><circle cx="12" cy="12" r="2.6" fill="#fff6d0"/></svg>',
 }
+
+const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12.8 5.2 5.2L20 6.8" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 1.6 3.1 6.5 7.1.9-5.2 4.9 1.4 7L12 17.5 5.6 20.9l1.4-7L1.8 9l7.1-.9Z" fill="#ffd24a" stroke="#fff6cf" stroke-width="1.1"/></svg>'
 
 const GLYPH = {
   keyboard: { move: '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>', look: '<span class="mouse-icon"></span>', jump: '<kbd class="wide">Пробел</kbd>', talk: '<kbd>E</kbd>', collect: '<span class="hint-spark">✦</span>' },
@@ -50,6 +53,8 @@ export class Ui {
   screen: Screen = 'boot'
   lastMethod = ''
   navRepeat = 0
+  level: LevelId = 'island'
+  private content: LevelContent = CONTENT.island
   private readonly root: HTMLElement
   private readonly promptEl: HTMLElement
   private readonly hintEl: HTMLElement
@@ -57,7 +62,6 @@ export class Ui {
   private readonly hudCache = new Map<string, string>()
   private hintKey: Hint | null = null
   private lastJourney?: JourneyState
-  private lastLevel: LevelId = 'island'
   private savedRank = -1
   private bannerTimer = 0
   private onlineMessage = ''
@@ -80,17 +84,19 @@ export class Ui {
     this.root.addEventListener('input', event => this.onInput(event))
     this.root.addEventListener('change', event => this.onInput(event))
     this.root.addEventListener('focusin', event => {
-      if ((event.target as HTMLElement).matches('.btn, .seg button, .toggle')) this.audio.play('ui')
+      if ((event.target as HTMLElement).matches('.btn, .seg button, .toggle, .level-card')) this.audio.play('ui')
     })
     window.addEventListener('keydown', event => this.onKey(event))
     i18n.onChange(() => {
       this.translate()
       this.refreshSettings()
-      if (this.lastJourney) this.showResults(this.lastJourney, this.lastLevel, false)
+      this.renderInventory()
+      if (this.lastJourney) this.showResults(this.lastJourney, false)
     })
     this.lastMethod = input.method
     this.translate()
     this.refreshSettings()
+    this.setLevel('island')
   }
 
   // ─── screens ─────────────────────────────────────────────────────────────
@@ -145,6 +151,15 @@ export class Ui {
     }
   }
 
+  /** Switch HUD copy, icons and theme to the level being played. */
+  setLevel(level: LevelId): void {
+    this.level = level
+    this.content = CONTENT[level]
+    this.root.dataset.level = level
+    this.hudCache.clear()
+    this.renderInventory()
+  }
+
   setBootProgress(progress: number): void {
     const bar = this.q<HTMLElement>('.boot-bar i')
     bar.style.transform = `scaleX(${Math.max(0.04, Math.min(1, progress))})`
@@ -165,7 +180,7 @@ export class Ui {
   updateHud(journey: JourneyState, compass: CompassTarget | null, target: NpcInfo | null): void {
     this.lastJourney = journey
     this.renderTasks(journey)
-    this.renderInventory(journey)
+    this.renderInventory()
     this.renderCompass(compass)
     this.renderPrompt(target)
     if (this.lastMethod !== this.input.method) {
@@ -180,6 +195,10 @@ export class Ui {
     this.updateHint()
   }
 
+  private hintKeyFor(hint: Hint): string {
+    return hint === 'collect' ? this.content.collectHintKey : `hint.${hint}.${this.input.method}`
+  }
+
   private updateHint(): void {
     const el = this.q<HTMLElement>('.hint')
     if (!this.hintKey) {
@@ -190,17 +209,19 @@ export class Ui {
     const glyph = GLYPH[method][this.hintKey]
     el.hidden = false
     this.q('.hint-glyph').innerHTML = glyph
-    this.q('.hint-text').textContent = this.i18n.t(`hint.${this.hintKey}.${method}`)
+    this.q('.hint-text').textContent = this.i18n.t(this.hintKeyFor(this.hintKey))
   }
 
   private renderTasks(journey: JourneyState): void {
-    const visible = QUESTS.filter(q => journey.quests[q.id] !== 'available')
-    const key = visible.map(q => `${q.id}:${journey.quests[q.id]}:${journey.inventory[q.item]}`).join('|') + `:${visible.length === 0}`
+    const visible = this.content.quests.filter(q => journey.quests[q.id] !== 'available')
+    const done = this.content.quests.filter(q => journey.quests[q.id] === 'done').length
+    const key = visible.map(q => `${q.id}:${journey.quests[q.id]}:${journey.inventory[q.item]}`).join('|') + `:${visible.length}:${done}`
     if (this.hudCache.get('tasks') === key) return
     this.hudCache.set('tasks', key)
+    this.q<HTMLElement>('.tasks-count').textContent = `${done}/${this.content.quests.length}`
     const list = this.q<HTMLElement>('.task-list')
     if (visible.length === 0) {
-      list.innerHTML = `<p class="tasks-empty">${this.i18n.t('hud.noTasks')}</p>`
+      list.innerHTML = `<p class="tasks-empty">${escapeHtml(this.i18n.t(this.content.noTasksKey))}</p>`
       return
     }
     list.innerHTML = visible.map(quest => {
@@ -209,20 +230,30 @@ export class Ui {
       return `<div class="task ${status === 'done' ? 'is-done' : ''}" style="--accent:${quest.accent}">
         <span class="task-avatar">${escapeHtml(this.i18n.t(quest.nameKey).slice(0, 1))}</span>
         <span class="task-copy"><b>${escapeHtml(this.i18n.t(quest.titleKey))}</b>
-          <small>${status === 'done' ? this.i18n.t('hud.taskDone') : `${this.i18n.t(ITEMS[quest.item].nameKey)} · ${have}/${quest.need}`}</small></span>
-        <span class="task-icon">${status === 'done' ? ICON.check : ICON[quest.item]}</span>
+          <small>${status === 'done' ? this.i18n.t('hud.taskDone') : `${escapeHtml(this.i18n.t(itemDef(this.content, quest.item).nameKey))} · ${have}/${quest.need}`}</small></span>
+        <span class="task-icon">${status === 'done' ? CHECK : ICON[quest.item]}</span>
       </div>`
     }).join('')
   }
 
-  private renderInventory(journey: JourneyState): void {
-    const key = ITEM_KINDS.map(kind => journey.inventory[kind]).join(',')
+  private renderInventory(): void {
+    const list = this.q<HTMLElement>('.inventory')
+    const kinds = this.content.itemKinds
+    const wanted = kinds.join(',')
+    if (list.dataset.kinds !== wanted) {
+      list.dataset.kinds = wanted
+      list.innerHTML = kinds.map(kind => `<div class="inv-item is-empty" data-inv="${kind}" title="${escapeHtml(this.i18n.t(itemDef(this.content, kind).nameKey))}"><span class="inv-icon">${ICON[kind]}</span><b>0</b></div>`).join('')
+      this.hudCache.delete('inventory')
+    }
+    if (!this.lastJourney) return
+    const key = kinds.map(kind => this.lastJourney!.inventory[kind]).join(',')
     if (this.hudCache.get('inventory') === key) return
     this.hudCache.set('inventory', key)
-    for (const kind of ITEM_KINDS) {
+    for (const kind of kinds) {
       const el = this.q<HTMLElement>(`[data-inv="${kind}"] b`)
-      el.textContent = String(journey.inventory[kind])
-      el.parentElement!.classList.toggle('is-empty', journey.inventory[kind] === 0)
+      if (!el) continue
+      el.textContent = String(this.lastJourney.inventory[kind])
+      el.parentElement!.classList.toggle('is-empty', this.lastJourney.inventory[kind] === 0)
     }
   }
 
@@ -234,8 +265,8 @@ export class Ui {
     }
     el.hidden = false
     const label = compass.kind === 'item'
-      ? this.i18n.t('hud.compassItem', { item: this.i18n.t(ITEMS[compass.item ?? 'berry'].nameKey), m: Math.round(compass.distance) })
-      : this.i18n.t('hud.compassNpc', { name: this.i18n.t(questById.get(compass.npc!)!.nameKey), m: Math.round(compass.distance) })
+      ? this.i18n.t('hud.compassItem', { item: this.i18n.t(itemDef(this.content, compass.item ?? this.content.itemKinds[0]).nameKey), m: Math.round(compass.distance) })
+      : this.i18n.t('hud.compassNpc', { name: this.i18n.t(questOf(this.content, compass.npc!)?.nameKey ?? ''), m: Math.round(compass.distance) })
     const arrow = this.q<HTMLElement>('.compass-arrow')
     arrow.style.transform = `rotate(${(-compass.angle * 180) / Math.PI}deg)`
     const text = this.q<HTMLElement>('.compass-label')
@@ -270,6 +301,7 @@ export class Ui {
     this.q('.dialog-title').textContent = data.title
     this.q('.dialog-text').textContent = data.text
     this.dialogVoice = data.voiceLine
+    this.q<HTMLButtonElement>('[data-dialog-replay]').hidden = !data.voiceLine
     const dots = Array.from({ length: data.need }, (_, i) => `<span class="dot ${i < Math.min(data.have, data.need) ? 'is-full' : ''}">${i < Math.min(data.have, data.need) ? ICON[data.item] : ''}</span>`).join('')
     this.q('.dialog-progress').innerHTML = `<span class="dialog-item">${ICON[data.item]}</span><span class="dialog-dots">${dots}</span><b>${Math.min(data.have, data.need)}/${data.need}</b>`
     const button = this.q<HTMLButtonElement>('.dialog-button')
@@ -277,7 +309,7 @@ export class Ui {
     button.textContent = this.i18n.t(data.action === 'accept' ? 'dialog.accept' : data.action === 'turnin' ? 'dialog.turnin' : 'dialog.close')
     this.setScreen('dialog')
     this.audio.play('ui')
-    this.audio.playDialog(data.voiceLine)
+    if (data.voiceLine) this.audio.playDialog(data.voiceLine)
   }
 
   hideDialog(): void {
@@ -299,9 +331,10 @@ export class Ui {
   }
 
   questDone(id: QuestId): void {
-    const quest = questById.get(id)!
+    const quest = questOf(this.content, id)
+    if (!quest) return
     const banner = this.q<HTMLElement>('.banner')
-    banner.innerHTML = `<span class="banner-icon">${ICON.check}</span><span><b>${this.i18n.t('hud.questComplete')}</b><small>${escapeHtml(this.i18n.t(quest.titleKey))}</small></span>`
+    banner.innerHTML = `<span class="banner-icon">${CHECK}</span><span><b>${this.i18n.t('hud.questComplete')}</b><small>${escapeHtml(this.i18n.t(quest.titleKey))}</small></span>`
     banner.hidden = false
     banner.classList.add('is-show')
     this.bannerTimer = 3
@@ -310,28 +343,33 @@ export class Ui {
 
   // ─── results & boards ────────────────────────────────────────────────────
 
-  showResults(journey: JourneyState, level: LevelId = 'island', record = true): void {
+  showResults(journey: JourneyState, record = true): void {
     this.lastJourney = journey
-    this.lastLevel = level
+    this.setLevel(journey.level)
     if (record) {
       const entry = { name: this.save.data.playerName, score: journey.score, seconds: Math.round(journey.elapsed), at: Date.now() }
       const { board, rank } = insertScore(this.save.data.leaderboard, entry)
       this.save.update({ leaderboard: board })
       this.savedRank = rank
     }
-    this.q('.results-title').textContent = this.i18n.t('results.won')
-    this.q('.results-thanks').textContent = this.i18n.t('results.thanks')
-    this.q('.results-stars').innerHTML = Array.from({ length: 3 }, (_, i) => `<span class="result-star ${i < starsOf(journey) ? 'is-on' : ''}">${ICON.star}</span>`).join('')
+    this.q('.results-title').textContent = this.i18n.t(this.content.resultsWonKey)
+    this.q('.results-thanks').textContent = this.i18n.t(this.content.resultsThanksKey)
+    this.q('.results-stars').innerHTML = Array.from({ length: 3 }, (_, i) => `<span class="result-star ${i < starsOf(journey) ? 'is-on' : ''}">${STAR}</span>`).join('')
     const stats = [
-      ['results.tasks', `${QUESTS.filter(q => journey.quests[q.id] === 'done').length}/${QUESTS.length}`],
-      ['results.items', `${journey.totalCollected}/${QUESTS.reduce((n, q) => n + q.need, 0)}`],
+      ['results.tasks', `${this.content.quests.filter(q => journey.quests[q.id] === 'done').length}/${this.content.quests.length}`],
+      ['results.items', `${journey.totalCollected}/${this.content.totalItems}`],
       ['results.time', formatDuration(journey.elapsed)],
       ['results.score', journey.score.toLocaleString('ru-RU')],
     ]
     this.q('.results-stats').innerHTML = stats.map(([key, value]) => `<div class="result-stat"><span>${this.i18n.t(key)}</span><b>${value}</b></div>`).join('')
     this.q<HTMLElement>('.results-newbest').hidden = this.savedRank !== 0
     this.q('.results-newbest').textContent = this.i18n.t('results.newBest')
-    this.q<HTMLButtonElement>('[data-action="next-level"]').hidden = level !== 'island' || !this.save.data.planetUnlocked
+    const next = otherLevel(journey.level)
+    const nextButton = this.q<HTMLButtonElement>('[data-action="switch-level"]')
+    const unlocked = journey.level === 'island' ? this.save.data.planetUnlocked : true
+    nextButton.hidden = !unlocked
+    nextButton.dataset.level = next
+    nextButton.textContent = this.i18n.t(journey.level === 'island' ? 'results.nextLevel' : 'results.backToIsland')
     this.setScreen('results')
     this.setOnlineStatus('pending')
   }
@@ -385,8 +423,10 @@ export class Ui {
 
   private refreshLevelButtons(): void {
     const button = this.q<HTMLButtonElement>('[data-action="play-planet"]')
-    button.disabled = !this.save.data.planetUnlocked
-    button.title = this.save.data.planetUnlocked ? '' : this.i18n.t('level.planet.locked')
+    const unlocked = this.save.data.planetUnlocked
+    button.disabled = !unlocked
+    button.classList.toggle('is-locked', !unlocked)
+    button.title = unlocked ? '' : this.i18n.t('level.planet.locked')
   }
 
   private renderBest(): void {
@@ -451,7 +491,7 @@ export class Ui {
       }
       if (this.input.consume('confirm')) {
         const active = document.activeElement as HTMLElement | null
-        if (active && typeof active.matches === 'function' && active.matches('.btn, .seg button, .toggle, [data-nav]')) active.click()
+        if (active && typeof active.matches === 'function' && active.matches('.btn, .seg button, .toggle, .level-card, [data-nav]')) active.click()
       }
       if (this.input.consume('back')) this.back()
     }
@@ -485,8 +525,8 @@ export class Ui {
   }
 
   private navItems(): HTMLElement[] {
-    return [...this.root.querySelectorAll<HTMLElement>('[data-screen].is-active .btn, [data-screen].is-active .seg button, [data-screen].is-active .toggle, [data-screen].is-active input:not([type="hidden"])')]
-      .filter(el => !el.hasAttribute('hidden') && el.offsetParent !== null)
+    return [...this.root.querySelectorAll<HTMLElement>('[data-screen].is-active .btn, [data-screen].is-active .seg button, [data-screen].is-active .toggle, [data-screen].is-active .level-card, [data-screen].is-active input:not([type="hidden"])')]
+      .filter(el => !el.hasAttribute('hidden') && el.offsetParent !== null && !(el as HTMLButtonElement).disabled)
   }
 
   private onKey(event: KeyboardEvent): void {
@@ -512,10 +552,11 @@ export class Ui {
     }
     const action = el.dataset.action
     if (action) {
+      if ((el as HTMLButtonElement).disabled) return
       this.audio.play('ui')
       if (action === 'play') this.actions.play('island')
       else if (action === 'play-planet') this.actions.play('planet')
-      else if (action === 'next-level') this.actions.startPlanet()
+      else if (action === 'switch-level') this.actions.play((el.dataset.level as LevelId) ?? otherLevel(this.level))
       else if (action === 'pause') this.actions.pause()
       else if (action === 'resume') this.actions.resume()
       else if (action === 'restart') this.actions.restart()
@@ -581,7 +622,7 @@ function template(): string {
   return `
   <section class="boot" data-screen="boot">
     <div class="boot-card">
-      <div class="boot-mark">${ICON.star}</div>
+      <div class="boot-mark">${STAR}</div>
       <h1 class="boot-title">Мурзик</h1>
       <p class="boot-sub">и Чудо-остров</p>
       <div class="boot-bar"><i></i></div>
@@ -603,9 +644,18 @@ function template(): string {
         <input data-field="playerName" maxlength="16" autocomplete="off" spellcheck="false" data-i18n-placeholder="menu.namePlaceholder" />
         <small class="privacy-note" data-i18n="menu.namePrivacy"></small>
       </label>
+      <div class="level-picker">
+        <button class="level-card" data-action="play" data-nav>
+          <span class="level-art island" aria-hidden="true"><i class="level-sun"></i><i class="level-hill"></i><i class="level-tree"></i></span>
+          <span class="level-copy"><b data-i18n="level.island.title"></b><small data-i18n="level.island.subtitle"></small></span>
+        </button>
+        <button class="level-card planet" data-action="play-planet" data-nav>
+          <span class="level-art planet" aria-hidden="true"><i class="level-giant"></i><i class="level-ring"></i><i class="level-star s1"></i><i class="level-star s2"></i><i class="level-star s3"></i></span>
+          <span class="level-copy"><b data-i18n="level.planet.title"></b><small data-i18n="level.planet.subtitle"></small></span>
+          <span class="level-lock" data-i18n="level.planet.locked"></span>
+        </button>
+      </div>
       <div class="menu-buttons">
-        <button class="btn primary big" data-action="play" data-nav>${ICON.play}<span data-i18n="menu.play"></span></button>
-        <button class="btn planet-level" data-action="play-planet" data-nav>${ICON.sparkle}<span data-i18n="menu.planet"></span></button>
         <button class="btn" data-action="leaderboard" data-nav data-i18n="menu.leaderboard"></button>
         <button class="btn" data-action="settings" data-nav data-i18n="menu.settings"></button>
       </div>
@@ -617,17 +667,15 @@ function template(): string {
   <section class="hud" data-screen="hud">
     <div class="hud-top">
       <div class="tasks panel">
-        <h2 data-i18n="hud.tasks"></h2>
+        <h2><span data-i18n="hud.tasks"></span><b class="tasks-count">0/0</b></h2>
         <div class="task-list"></div>
       </div>
       <div class="hud-right">
-        <button class="icon-btn" data-action="pause" data-nav aria-label="Пауза">${ICON.pause}</button>
-        <div class="inventory panel">
-          ${ITEM_KINDS.map(kind => `<div class="inv-item is-empty" data-inv="${kind}" title="${kind}"><span class="inv-icon">${ICON[kind]}</span><b>0</b></div>`).join('')}
-        </div>
+        <button class="icon-btn" data-action="pause" data-nav aria-label="Пауза"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="2" fill="currentColor"/><rect x="14" y="4" width="5" height="16" rx="2" fill="currentColor"/></svg></button>
+        <div class="inventory panel"></div>
       </div>
     </div>
-    <div class="compass" hidden><span class="compass-arrow">${ICON.arrow}</span><span class="compass-label"></span></div>
+    <div class="compass" hidden><span class="compass-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 20 21l-8-5-8 5Z" fill="currentColor"/></svg></span><span class="compass-label"></span></div>
     <div class="hint" hidden><span class="hint-glyph"></span><span class="hint-text"></span></div>
     <div class="prompt" hidden><span class="prompt-key">E</span><span class="prompt-text"></span></div>
     <div class="banner" hidden></div>
@@ -722,7 +770,7 @@ function template(): string {
       <div class="stack row">
         <button class="btn retry-submit" data-action="retry-submit" data-nav data-i18n="results.retrySubmit" hidden></button>
         <button class="btn primary" data-action="restart" data-nav data-i18n="results.retry"></button>
-        <button class="btn planet-next" data-action="next-level" data-nav data-i18n="results.nextLevel" hidden></button>
+        <button class="btn planet-next" data-action="switch-level" data-nav hidden></button>
         <button class="btn" data-action="quit" data-nav data-i18n="results.title"></button>
       </div>
     </div>

@@ -1,15 +1,18 @@
 import * as THREE from 'three'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js'
-import type { ItemKind, QuestId } from './quests'
+import type { IslandItemKind, IslandQuestId } from './content'
 
 export type PropKey = 'tree' | 'cottage'
 
-/** Every runtime GLB, preloaded once at boot and shared by the scene. */
+/**
+ * Every runtime GLB, preloaded once at boot and shared by the scene. Only Чудо-остров uses
+ * generated files; Планета Звёздная is modelled from geometry and needs no downloads.
+ */
 export type ModelPack = {
   player: GLTF
-  npcs: Record<QuestId, GLTF>
-  items: Record<ItemKind, GLTF>
+  npcs: Record<IslandQuestId, GLTF>
+  items: Record<IslandItemKind, GLTF>
   props: Record<PropKey, GLTF>
 }
 

@@ -7,18 +7,19 @@ import type { Renderer } from '../engine/renderer'
 import type { Quality } from '../engine/save'
 import { FollowCamera } from './camera'
 import { CONFIG } from './config'
+import { contentFor, itemDef, questOf, type ItemKind, type LevelContent, type QuestId } from './content'
 import { Effects } from './fx'
 import { Items } from './items'
 import type { ModelPack } from './models'
 import { Npcs, type NpcInfo } from './npcs'
 import { Player, type PlayerEvent } from './player'
-import { ITEMS, QUESTS, questById, type ItemKind, type QuestId } from './quests'
 import {
   acceptQuest, completedCount, createJourney, missingFor, pickup, tick, turnIn,
   type JourneyState, type QuestStatus,
 } from './rules'
 import { tuning } from './tuning'
-import { World } from './world'
+import { createWorld, type WorldView } from './world'
+import { itemFactory, npcVisuals } from './visuals'
 import type { LevelId } from './levels'
 
 export type Mode = 'attract' | 'playing' | 'talking' | 'paused' | 'ended'
@@ -39,7 +40,8 @@ export type DialogData = {
   status: QuestStatus
   action: DialogAction
   accent: string
-  voiceLine: DialogVoiceLine
+  /** Every island line is voiced; each cosmic friend has a voiced greeting. */
+  voiceLine?: DialogVoiceLine
 }
 
 export type CompassTarget = {
@@ -61,7 +63,7 @@ export type GameHooks = {
 }
 
 /**
- * One playable island: owns the world, player, residents, collectibles and journey rules, and
+ * One playable level: owns the world, player, residents, collectibles and journey rules, and
  * translates simulation events into audio, particles and UI hooks. There is no timer, damage or
  * losing: the only end state is the celebration after every resident has been helped.
  */
@@ -69,8 +71,10 @@ export class Game {
   mode: Mode = 'attract'
   journey: JourneyState
   reducedMotion = false
+  readonly level: LevelId
+  readonly content: LevelContent
   private readonly physics: Physics
-  private readonly world: World
+  private readonly world: WorldView
   private readonly player: Player
   private readonly cam: FollowCamera
   private readonly items: Items
@@ -86,7 +90,6 @@ export class Game {
   private savedYaw = 0
   private savedPitch = 0.32
   private readonly down = new RAPIER.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 })
-  readonly level: LevelId
 
   constructor(
     private readonly renderer: Renderer,
@@ -98,14 +101,15 @@ export class Game {
     level: LevelId = 'island',
   ) {
     this.level = level
+    this.content = contentFor(level)
     this.physics = new Physics(CONFIG.player.gravity)
-    this.world = new World(this.physics, renderer.shadowMapSize, models.props, level)
+    this.world = createWorld(this.physics, renderer.shadowMapSize, models.props, level)
     this.player = new Player(this.physics, this.world.spawn, models.player)
     this.cam = new FollowCamera(this.physics, this.player.collider)
-    this.items = new Items(this.world.itemSpots, models.items)
-    this.npcs = new Npcs(this.physics, models.npcs)
+    this.items = new Items(this.content, itemFactory(this.content, models))
+    this.npcs = new Npcs(this.physics, this.content, npcVisuals(this.content, models))
     this.world.scene.add(this.player.root, this.player.shadowMesh, this.items.group, this.npcs.group, this.fx.mesh)
-    this.journey = createJourney()
+    this.journey = createJourney(this.content)
     this.cam.reset(this.world.spawn, 0.6)
   }
 
@@ -123,7 +127,7 @@ export class Game {
     this.player.facing = 0
     this.cam.pitch = 0.32
     this.cam.reset(this.world.spawn, 0)
-    this.journey = { ...createJourney(), unranked: tuning.unranked }
+    this.journey = { ...createJourney(this.content), unranked: tuning.unranked }
     this.mode = 'playing'
     this.dialogNpc = null
     this.finishTimer = 0
@@ -186,10 +190,11 @@ export class Game {
       for (const event of events) this.onPlayerEvent(event, pos)
 
       for (const got of this.items.collect(pos, CONFIG.quest.pickupRadius)) {
-        this.journey = pickup(this.journey, got.kind).state
+        this.journey = pickup(this.journey, got.kind, this.content).state
+        const def = itemDef(this.content, got.kind)
         this.audio.play('pickup')
-        this.fx.burst(got.at, ITEMS[got.kind].color, 24, 6)
-        this.hooks.popup(`+1 ${this.i18n.t(ITEMS[got.kind].nameKey)}`, this.project(got.at.clone().setY(got.at.y + 0.6)), 'item')
+        this.fx.burst(got.at, def.color, 24, 6)
+        this.hooks.popup(`+1 ${this.i18n.t(def.nameKey)}`, this.project(got.at.clone().setY(got.at.y + 0.6)), 'item')
         if (this.tutorial === 'collect') {
           this.advanceTutorial(null)
           this.hooks.tutorialDone()
@@ -197,7 +202,7 @@ export class Game {
       }
 
       if (pos.y < -8) {
-        // A soft rescue, never a punishment: the island has an invisible hedge, but a fall is safe.
+        // A soft rescue, never a punishment: the level has an invisible hedge, but a fall is safe.
         this.player.teleport(this.player.safe)
         this.cam.reset(this.player.safe)
       }
@@ -257,13 +262,13 @@ export class Game {
   /** Direction to the nearest current objective relative to the camera (HUD compass). */
   compass(): CompassTarget | null {
     const pos = this.player.root.position
-    const active = QUESTS.filter(q => this.journey.quests[q.id] === 'active')
+    const active = this.content.quests.filter(q => this.journey.quests[q.id] === 'active')
     let target: THREE.Vector3 | undefined
     let kind: 'item' | 'npc' = 'item'
     let item: ItemKind | undefined
     let npc: QuestId | undefined
 
-    const needing = active.find(q => missingFor(this.journey, q.id) > 0)
+    const needing = active.find(q => missingFor(this.journey, q.id, this.content) > 0)
     if (needing) {
       const spot = this.items.nearest(needing.item, pos)
       if (spot) {
@@ -272,8 +277,8 @@ export class Game {
       }
     }
     if (!target) {
-      const ready = active.filter(q => missingFor(this.journey, q.id) === 0)
-      const pool = ready.length > 0 ? ready : QUESTS.filter(q => this.journey.quests[q.id] === 'available')
+      const ready = active.filter(q => missingFor(this.journey, q.id, this.content) === 0)
+      const pool = ready.length > 0 ? ready : this.content.quests.filter(q => this.journey.quests[q.id] === 'available')
       let best = Infinity
       for (const quest of pool) {
         const p = this.npcs.positionOf(quest.id)
@@ -311,15 +316,15 @@ export class Game {
       return
     }
     if (action === 'turnin') {
-      const result = turnIn(this.journey, id)
+      const result = turnIn(this.journey, id, this.content)
       if (result.completed) {
         this.journey = result.state
-        const quest = questById.get(id)!
+        const quest = questOf(this.content, id)!
         const at = this.npcs.positionOf(id).setY(1)
         this.audio.play('quest')
         this.fx.burst(at, quest.accent, 42, 8)
         this.hooks.questDone(id)
-        this.world.setLanterns(completedCount(this.journey))
+        this.world.setLanterns(completedCount(this.journey, this.content))
         if (this.journey.phase === 'won') this.finishTimer = 2.2
         this.hooks.dialog(this.dialogData(id, true))
       }
@@ -359,7 +364,7 @@ export class Game {
   }
 
   private dialogData(id: QuestId, thanks: boolean): DialogData {
-    const quest = questById.get(id)!
+    const quest = questOf(this.content, id)!
     const status = this.journey.quests[id]
     const have = this.journey.inventory[quest.item]
     let text = this.i18n.t(quest.doneKey)
@@ -373,7 +378,7 @@ export class Game {
       action = 'accept'
       line = 'intro'
     } else if (status === 'active') {
-      const missing = missingFor(this.journey, id)
+      const missing = missingFor(this.journey, id, this.content)
       if (missing > 0) {
         text = this.i18n.t(quest.progressKey, { n: missing })
         line = 'progress'
@@ -389,13 +394,13 @@ export class Game {
       title: this.i18n.t(quest.titleKey),
       text,
       item: quest.item,
-      itemName: this.i18n.t(ITEMS[quest.item].nameKey),
+      itemName: this.i18n.t(itemDef(this.content, quest.item).nameKey),
       have,
       need: quest.need,
       status,
       action,
       accent: quest.accent,
-      voiceLine: `${id}-${line}`,
+      voiceLine: this.level === 'island' ? `${id}-${line}` : line === 'intro' ? `${id}-intro` : undefined,
     }
   }
 

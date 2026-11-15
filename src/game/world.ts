@@ -3,45 +3,16 @@ import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { Physics } from '../engine/physics'
 import { instantiate, type PropKey } from './models'
 import { haloTexture } from './textures'
+import { ISLAND_LAYOUT, PLANET_LAYOUT, type LevelLayout } from './layout'
 import type { LevelId } from './levels'
+import { flat, jitter, rng, signTexture } from './world/shared'
+import { PlanetWorld } from './world/planet'
 
 /**
  * The single cozy island of Чудо-остров. The ground is flat so very young players can never get
  * stuck on a slope; variety comes from paths, zones, props, water, flowers and friendly details.
  */
-export type NpcSpotId = 'grandma' | 'fairy' | 'mushroom' | 'cat'
-
-export const WORLD = {
-  radius: 30,
-  playableRadius: 28.2,
-  spawn: new THREE.Vector3(0, 1, 0),
-  npcSpots: {
-    grandma: new THREE.Vector3(13.5, 0, 7),
-    fairy: new THREE.Vector3(2, 0, -12),
-    mushroom: new THREE.Vector3(-14, 0, 4),
-    cat: new THREE.Vector3(-2, 0, 16),
-  } satisfies Record<NpcSpotId, THREE.Vector3>,
-  itemSpots: {
-    berry: [
-      new THREE.Vector3(11, 0.7, 8), new THREE.Vector3(16, 0.7, 11), new THREE.Vector3(20, 0.7, 8),
-      new THREE.Vector3(12, 0.7, 2), new THREE.Vector3(9, 0.7, 5),
-    ],
-    crystal: [
-      new THREE.Vector3(0, 0.7, -13), new THREE.Vector3(9, 0.7, -11),
-      new THREE.Vector3(10, 0.7, -20), new THREE.Vector3(-1, 0.7, -19),
-    ],
-    mushroom: [
-      new THREE.Vector3(-12, 0.7, 6), new THREE.Vector3(-17, 0.7, 8),
-      new THREE.Vector3(-19, 0.7, 0), new THREE.Vector3(-13, 0.7, -3),
-    ],
-    star: [
-      new THREE.Vector3(4, 0.7, 18), new THREE.Vector3(-6, 0.7, 19), new THREE.Vector3(1, 0.7, 25),
-    ],
-  },
-  pond: { center: new THREE.Vector3(4, 0, -17), radius: 4.6 },
-  tree: new THREE.Vector3(0, 0, 22),
-  cottage: new THREE.Vector3(17, 0, 4),
-} as const
+export const WORLD = ISLAND_LAYOUT
 
 export const PALETTE = {
   skyTop: new THREE.Color('#7cc6ff'),
@@ -59,27 +30,22 @@ export const PALETTE = {
   flower: ['#ff8a9c', '#ffd35c', '#ffffff', '#b79cff', '#ff9a5c', '#8ed6ff'],
 }
 
-/** Mulberry32: tiny deterministic RNG so the island never changes between loads. */
-export function rng(seed: number): () => number {
-  let a = seed >>> 0
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0
-    let t = a
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
-
 type Lantern = { glow: THREE.MeshStandardMaterial; light: THREE.PointLight; phase: number }
 type Butterfly = { root: THREE.Group; wings: THREE.Mesh[]; center: THREE.Vector3; phase: number; radius: number; height: number }
 type Firefly = { sprite: THREE.Sprite; home: THREE.Vector3; phase: number }
 
-export class World {
+export type WorldView = {
+  scene: THREE.Scene
+  sun: THREE.DirectionalLight
+  spawn: THREE.Vector3
+  update(dt: number, focus: THREE.Vector3): void
+  setLanterns(done: number): void
+}
+
+export class IslandWorld implements WorldView {
   readonly scene = new THREE.Scene()
   readonly sun: THREE.DirectionalLight
-  readonly spawn = WORLD.spawn.clone()
-  readonly itemSpots = WORLD.itemSpots
+  readonly spawn: THREE.Vector3
   private readonly clouds: THREE.Object3D[] = []
   private readonly ripples: THREE.Mesh[] = []
   private readonly lanterns: Lantern[] = []
@@ -88,11 +54,16 @@ export class World {
   private readonly water: THREE.Mesh
   private time = 0
 
-  constructor(private readonly physics: Physics, shadowMapSize: number, props: Record<PropKey, GLTF>, readonly level: LevelId = 'island') {
-    const random = rng(20261115)
-    const cosmic = level === 'planet'
-    this.scene.background = new THREE.Color(cosmic ? '#120d3b' : PALETTE.horizon)
-    this.scene.fog = new THREE.Fog(cosmic ? '#21145d' : PALETTE.horizon, cosmic ? 80 : 65, 190)
+  constructor(
+    private readonly physics: Physics,
+    shadowMapSize: number,
+    props: Record<PropKey, GLTF>,
+    private readonly layout: LevelLayout = ISLAND_LAYOUT,
+  ) {
+    const random = rng(layout.seed)
+    this.spawn = layout.spawn.clone()
+    this.scene.background = new THREE.Color(PALETTE.horizon)
+    this.scene.fog = new THREE.Fog(PALETTE.horizon, 65, 190)
 
     this.scene.add(this.makeSky())
     this.scene.add(new THREE.HemisphereLight('#d8f1ff', '#7fae63', 1.15))
@@ -109,7 +80,6 @@ export class World {
     this.scene.add(this.sun, this.sun.target)
 
     this.addIsland()
-    if (cosmic) this.addSpaceTheme(random)
     this.addPaths()
     this.water = this.addPond(random)
     this.addTree(props.tree, random)
@@ -121,39 +91,6 @@ export class World {
     this.addDistantIslands(random)
     this.addButterflies(random)
     this.addFireflies(random)
-  }
-
-  private addSpaceTheme(random: () => number): void {
-    const ground = new THREE.Mesh(new THREE.CircleGeometry(WORLD.radius - 0.5, 72), new THREE.MeshStandardMaterial({ color: '#4d3b91', roughness: 0.98, metalness: 0.05 }))
-    ground.rotation.x = -Math.PI / 2
-    ground.position.y = 0.025
-    ground.receiveShadow = true
-    this.scene.add(ground)
-    const craterMat = new THREE.MeshStandardMaterial({ color: '#302564', roughness: 1 })
-    for (let i = 0; i < 18; i += 1) {
-      const a = random() * Math.PI * 2
-      const d = 4 + random() * 21
-      const crater = new THREE.Mesh(new THREE.CylinderGeometry(0.45 + random() * 0.75, 0.65 + random() * 0.9, 0.035, 16), craterMat)
-      crater.rotation.x = -Math.PI / 2
-      crater.position.set(Math.cos(a) * d, 0.06, Math.sin(a) * d)
-      this.scene.add(crater)
-    }
-    const ring = new THREE.Mesh(new THREE.RingGeometry(33, 36, 96), new THREE.MeshBasicMaterial({ color: '#f4a9ff', transparent: true, opacity: 0.42, side: THREE.DoubleSide }))
-    ring.rotation.x = Math.PI * 0.39
-    ring.rotation.z = -0.15
-    ring.position.y = 7
-    this.scene.add(ring)
-    const starMat = new THREE.MeshBasicMaterial({ color: '#fff4bd' })
-    for (let i = 0; i < 90; i += 1) {
-      const star = new THREE.Mesh(new THREE.SphereGeometry(0.08 + random() * 0.1, 6, 4), starMat)
-      const a = random() * Math.PI * 2
-      const d = 52 + random() * 85
-      star.position.set(Math.cos(a) * d, 12 + random() * 65, Math.sin(a) * d)
-      this.scene.add(star)
-    }
-    const moon = new THREE.Mesh(new THREE.SphereGeometry(5.5, 20, 12), new THREE.MeshStandardMaterial({ color: '#c9a6ff', emissive: '#4a2e86', emissiveIntensity: 0.35 }))
-    moon.position.set(-42, 32, -62)
-    this.scene.add(moon)
   }
 
   /** Per-frame ambience: drifting clouds, water shimmer, butterflies and the sun following the player. */
@@ -202,10 +139,6 @@ export class World {
     }
   }
 
-  inPond(pos: THREE.Vector3): boolean {
-    return Math.hypot(pos.x - WORLD.pond.center.x, pos.z - WORLD.pond.center.z) < WORLD.pond.radius - 0.5
-  }
-
   private makeSky(): THREE.Mesh {
     const mat = new THREE.ShaderMaterial({
       side: THREE.BackSide,
@@ -241,7 +174,7 @@ export class World {
   }
 
   private addIsland(): void {
-    const r = WORLD.radius
+    const r = this.layout.radius
     const top = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.985, 1.2, 72, 1), flat(PALETTE.grass))
     top.position.y = -0.6
     top.receiveShadow = true
@@ -270,11 +203,12 @@ export class World {
   }
 
   private addPaths(): void {
+    const spots = this.layout.npcSpots
     const routes: THREE.Vector3[][] = [
-      [new THREE.Vector3(0, 0, 0), new THREE.Vector3(4, 0, 2), new THREE.Vector3(9, 0, 5), new THREE.Vector3(13.5, 0, 7)],
-      [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.5, 0, -5), new THREE.Vector3(1.5, 0, -9), new THREE.Vector3(2, 0, -11.5)],
-      [new THREE.Vector3(0, 0, 0), new THREE.Vector3(-5, 0, 2), new THREE.Vector3(-10, 0, 3), new THREE.Vector3(-13.5, 0, 4)],
-      [new THREE.Vector3(0, 0, 0), new THREE.Vector3(-2, 0, 6), new THREE.Vector3(-3, 0, 11), new THREE.Vector3(-2, 0, 15.5)],
+      [new THREE.Vector3(0, 0, 0), new THREE.Vector3(4, 0, 2), new THREE.Vector3(9, 0, 5), spots.grandma!.clone()],
+      [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.5, 0, -5), new THREE.Vector3(1.5, 0, -9), spots.fairy!.clone().setZ(-11.5)],
+      [new THREE.Vector3(0, 0, 0), new THREE.Vector3(-5, 0, 2), new THREE.Vector3(-10, 0, 3), spots.mushroom!.clone()],
+      [new THREE.Vector3(0, 0, 0), new THREE.Vector3(-2, 0, 6), new THREE.Vector3(-3, 0, 11), spots.cat!.clone().setZ(15.5)],
     ]
     const mat = new THREE.MeshStandardMaterial({ color: PALETTE.sand, roughness: 0.95, metalness: 0, polygonOffset: true, polygonOffsetFactor: -1 })
     for (const route of routes) {
@@ -306,7 +240,7 @@ export class World {
   }
 
   private addPond(random: () => number): THREE.Mesh {
-    const { center, radius } = WORLD.pond
+    const { center, radius } = this.layout.water
     const water = new THREE.Mesh(
       new THREE.CircleGeometry(radius, 48),
       new THREE.MeshStandardMaterial({ color: PALETTE.water, transparent: true, opacity: 0.78, roughness: 0.15, metalness: 0 }),
@@ -360,18 +294,19 @@ export class World {
   }
 
   private addTree(gltf: GLTF, random: () => number): void {
+    const at = this.layout.landmark
     const tree = instantiate(gltf, { height: 11 })
-    tree.position.copy(WORLD.tree)
+    tree.position.copy(at)
     tree.rotation.y = -0.4
     this.scene.add(tree)
-    this.physics.addStaticCylinder(new THREE.Vector3(WORLD.tree.x, 2.2, WORLD.tree.z), 1.35, 4.4)
+    this.physics.addStaticCylinder(new THREE.Vector3(at.x, 2.2, at.z), 1.35, 4.4)
 
     // A flower ring around the landmark.
     for (let i = 0; i < 18; i += 1) {
       const a = (i / 18) * Math.PI * 2
       const d = 4.4 + random() * 0.6
       const flower = this.makeFlower(random)
-      flower.position.set(WORLD.tree.x + Math.cos(a) * d, 0, WORLD.tree.z + Math.sin(a) * d)
+      flower.position.set(at.x + Math.cos(a) * d, 0, at.z + Math.sin(a) * d)
       this.scene.add(flower)
     }
 
@@ -379,8 +314,8 @@ export class World {
     for (let i = 0; i < 4; i += 1) {
       const a = (i / 4) * Math.PI * 2 + Math.PI / 4
       const d = 5.2
-      const x = WORLD.tree.x + Math.cos(a) * d
-      const z = WORLD.tree.z + Math.sin(a) * d
+      const x = at.x + Math.cos(a) * d
+      const z = at.z + Math.sin(a) * d
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 2.4, 7), flat(PALETTE.trunk))
       post.position.set(x, 1.2, z)
       post.castShadow = true
@@ -397,17 +332,18 @@ export class World {
   }
 
   private addCottage(gltf: GLTF, random: () => number): void {
+    const at = this.layout.building
     const cottage = instantiate(gltf, { height: 3.6 })
-    cottage.position.copy(WORLD.cottage)
-    cottage.rotation.y = Math.atan2(WORLD.spawn.x - WORLD.cottage.x, WORLD.spawn.z - WORLD.cottage.z)
+    cottage.position.copy(at)
+    cottage.rotation.y = Math.atan2(this.spawn.x - at.x, this.spawn.z - at.z)
     this.scene.add(cottage)
-    this.physics.addStaticBox(new THREE.Vector3(WORLD.cottage.x, 1.8, WORLD.cottage.z), new THREE.Vector3(4.2, 3.6, 4.2))
+    this.physics.addStaticBox(new THREE.Vector3(at.x, 1.8, at.z), new THREE.Vector3(4.2, 3.6, 4.2))
 
     // A little garden fence on the meadow side.
     const fenceMat = flat(new THREE.Color('#d9b27c'))
     for (let i = 0; i < 7; i += 1) {
-      const x = WORLD.cottage.x - 3.8 + i * 1.25
-      const z = WORLD.cottage.z - 3.4
+      const x = at.x - 3.8 + i * 1.25
+      const z = at.z - 3.4
       const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.85, 0.14), fenceMat)
       post.position.set(x, 0.42, z)
       post.castShadow = true
@@ -420,7 +356,7 @@ export class World {
     }
     for (let i = 0; i < 8; i += 1) {
       const flower = this.makeFlower(random)
-      flower.position.set(WORLD.cottage.x - 3.4 + random() * 6, 0, WORLD.cottage.z - 3 + random() * 1.4)
+      flower.position.set(at.x - 3.4 + random() * 6, 0, at.z - 3 + random() * 1.4)
       this.scene.add(flower)
     }
   }
@@ -443,8 +379,9 @@ export class World {
         new THREE.PlaneGeometry(1.7, 0.42),
         new THREE.MeshBasicMaterial({ map: signTexture(label, color), transparent: true, side: THREE.DoubleSide }),
       )
-      board.position.set(x, 2.15 - i * 0.46, z)
-      board.rotation.y = Math.atan2(WORLD.spawn.x - x, WORLD.spawn.z - z)
+      const facing = Math.atan2(this.spawn.x - x, this.spawn.z - z)
+      board.position.set(x + Math.sin(facing) * 0.22, 2.15 - i * 0.46, z + Math.cos(facing) * 0.22)
+      board.rotation.y = facing
       this.scene.add(board)
     })
   }
@@ -460,7 +397,7 @@ export class World {
         const d = 2 + random() * spread
         const x = cx + Math.cos(a) * d
         const z = cz + Math.sin(a) * d
-        if (Math.hypot(x - WORLD.spawn.x, z - WORLD.spawn.z) < 7) continue
+        if (Math.hypot(x - this.spawn.x, z - this.spawn.z) < 7) continue
         if (this.nearNpc(x, z, 3.2)) continue
         this.addSmallTree(x, z, 0.75 + random() * 0.65, random)
       }
@@ -471,7 +408,7 @@ export class World {
       const d = 21 + random() * 6
       const x = Math.cos(a) * d
       const z = Math.sin(a) * d
-      if (this.nearNpc(x, z, 3.5) || Math.hypot(x - WORLD.tree.x, z - WORLD.tree.z) < 7) continue
+      if (this.nearNpc(x, z, 3.5) || Math.hypot(x - this.layout.landmark.x, z - this.layout.landmark.z) < 7) continue
       this.addSmallTree(x, z, 0.8 + random() * 0.5, random)
     }
     // Bushes and rocks.
@@ -507,7 +444,7 @@ export class World {
       const d = 3 + random() * 25
       const x = Math.cos(a) * d
       const z = Math.sin(a) * d
-      if (this.nearNpc(x, z, 2) || this.nearItem(x, z, 1.2) || Math.hypot(x - WORLD.pond.center.x, z - WORLD.pond.center.z) < WORLD.pond.radius + 0.8) continue
+      if (this.nearNpc(x, z, 2) || this.nearItem(x, z, 1.2) || Math.hypot(x - this.layout.water.center.x, z - this.layout.water.center.z) < this.layout.water.radius + 0.8) continue
       dummy.position.set(x, 0.15, z)
       dummy.rotation.set(0, random() * 3, 0)
       dummy.updateMatrix()
@@ -525,11 +462,12 @@ export class World {
     this.scene.add(stems, heads)
 
     // Decorative mushrooms in the forest.
+    const mushroomAt = this.layout.npcSpots.mushroom!
     for (let i = 0; i < 14; i += 1) {
       const a = random() * Math.PI * 2
       const d = 4 + random() * 9
-      const x = WORLD.npcSpots.mushroom.x + Math.cos(a) * d
-      const z = WORLD.npcSpots.mushroom.z + Math.sin(a) * d
+      const x = mushroomAt.x + Math.cos(a) * d
+      const z = mushroomAt.z + Math.sin(a) * d
       if (this.nearNpc(x, z, 1.6)) continue
       const cap = new THREE.Mesh(new THREE.SphereGeometry(0.18 + random() * 0.16, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), flat(new THREE.Color('#ff8a6b')))
       cap.position.set(x, 0.24, z)
@@ -541,7 +479,7 @@ export class World {
 
   private addBoundary(random: () => number): void {
     const count = 56
-    const radius = WORLD.playableRadius + 1
+    const radius = this.layout.playableRadius + 1
     for (let i = 0; i < count; i += 1) {
       const a = (i / count) * Math.PI * 2
       const x = Math.cos(a) * radius
@@ -650,9 +588,9 @@ export class World {
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: '#fff0a0', transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending }))
       sprite.scale.setScalar(0.35 + random() * 0.25)
       const home = new THREE.Vector3(
-        WORLD.pond.center.x + (random() - 0.5) * 9,
+        this.layout.water.center.x + (random() - 0.5) * 9,
         0.6 + random() * 1.2,
-        WORLD.pond.center.z + (random() - 0.5) * 9,
+        this.layout.water.center.z + (random() - 0.5) * 9,
       )
       sprite.position.copy(home)
       this.scene.add(sprite)
@@ -661,11 +599,11 @@ export class World {
   }
 
   private nearNpc(x: number, z: number, d: number): boolean {
-    return Object.values(WORLD.npcSpots).some(p => Math.hypot(p.x - x, p.z - z) < d)
+    return Object.values(this.layout.npcSpots).some(p => !!p && Math.hypot(p.x - x, p.z - z) < d)
   }
 
   private nearItem(x: number, z: number, d: number): boolean {
-    return Object.values(WORLD.itemSpots).flat().some(p => Math.hypot(p.x - x, p.z - z) < d)
+    return Object.values(this.layout.itemSpots).flatMap(spots => spots ?? []).some(p => Math.hypot(p.x - x, p.z - z) < d)
   }
 
   private makeFlower(random: () => number): THREE.Group {
@@ -699,17 +637,6 @@ export class World {
   }
 }
 
-const materialCache = new Map<string, THREE.MeshStandardMaterial>()
-function flat(color: THREE.Color): THREE.MeshStandardMaterial {
-  const key = `flat:${color.getHexString()}`
-  let m = materialCache.get(key)
-  if (!m) {
-    m = new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.92, metalness: 0 })
-    materialCache.set(key, m)
-  }
-  return m
-}
-
 function shadeCloud(geo: THREE.BufferGeometry): THREE.BufferGeometry {
   const pos = geo.attributes.position
   geo.computeBoundingBox()
@@ -726,46 +653,9 @@ function shadeCloud(geo: THREE.BufferGeometry): THREE.BufferGeometry {
   return geo
 }
 
-/** Displace vertices so primitives read as hand-carved rock, keeping shared seams closed. */
-function jitter(geo: THREE.BufferGeometry, random: () => number, amount: number): void {
-  const pos = geo.attributes.position as THREE.BufferAttribute
-  const offsets = new Map<string, THREE.Vector3>()
-  const v = new THREE.Vector3()
-  for (let i = 0; i < pos.count; i += 1) {
-    v.fromBufferAttribute(pos, i)
-    const key = `${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`
-    let o = offsets.get(key)
-    if (!o) {
-      o = new THREE.Vector3((random() - 0.5) * amount, (random() - 0.5) * amount, (random() - 0.5) * amount)
-      offsets.set(key, o)
-    }
-    pos.setXYZ(i, v.x + o.x, v.y + o.y, v.z + o.z)
-  }
-  geo.computeVertexNormals()
-}
-
-function signTexture(label: string, color: string): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas')
-  canvas.width = 512
-  canvas.height = 128
-  const ctx = canvas.getContext('2d')!
-  ctx.fillStyle = 'rgba(58,46,79,0.25)'
-  ctx.beginPath()
-  ctx.roundRect(12, 18, 488, 100, 34)
-  ctx.fill()
-  ctx.fillStyle = color
-  ctx.strokeStyle = '#3a2e4f'
-  ctx.lineWidth = 10
-  ctx.beginPath()
-  ctx.roundRect(8, 8, 488, 100, 34)
-  ctx.fill()
-  ctx.stroke()
-  ctx.fillStyle = '#3a2e4f'
-  ctx.font = '800 56px Nunito, system-ui, sans-serif'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(label, 256, 60)
-  const tex = new THREE.CanvasTexture(canvas)
-  tex.colorSpace = THREE.SRGBColorSpace
-  return tex
+/** Build the world for a level. Both worlds share the same small gameplay contract. */
+export function createWorld(physics: Physics, shadowMapSize: number, props: Record<PropKey, GLTF>, level: LevelId): WorldView {
+  return level === 'planet'
+    ? new PlanetWorld(physics, shadowMapSize, PLANET_LAYOUT)
+    : new IslandWorld(physics, shadowMapSize, props, ISLAND_LAYOUT)
 }

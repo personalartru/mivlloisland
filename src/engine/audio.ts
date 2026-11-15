@@ -28,6 +28,7 @@ const DIALOG_LINES: DialogVoiceLine[] = [
   'fairy-intro', 'fairy-progress', 'fairy-ready', 'fairy-thanks', 'fairy-done',
   'mushroom-intro', 'mushroom-progress', 'mushroom-ready', 'mushroom-thanks', 'mushroom-done',
   'cat-intro', 'cat-progress', 'cat-ready', 'cat-thanks', 'cat-done',
+  'lumo-intro', 'whale-intro', 'keeper-intro', 'comet-intro', 'bip-intro', 'lunatic-intro',
 ]
 
 const dialogUrl = (line: DialogVoiceLine) => `${import.meta.env.BASE_URL}audio/dialogs/${line}.wav`

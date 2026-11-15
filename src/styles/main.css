@@ -237,6 +237,61 @@ kbd.round.y { background: #ffe08a; }
 .menu-buttons { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .menu-buttons .big { flex: 0 0 auto; }
 .best { margin: 16px 0 0; font-size: 14px; color: var(--ink-soft); min-height: 18px; }
+
+/* Level cards on the title screen: island meadow and a ringed crystal planet. */
+.level-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 16px; }
+.level-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 10px 12px;
+  border: var(--line);
+  border-radius: 20px;
+  background: var(--paper);
+  box-shadow: 0 5px 0 var(--ink), 0 12px 22px var(--shadow);
+  text-align: left;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.level-card:hover, .level-card:focus-visible { transform: translateY(-2px); box-shadow: 0 7px 0 var(--ink), 0 16px 26px var(--shadow); outline: none; }
+.level-card:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+.level-card.is-locked { cursor: not-allowed; }
+.level-art { position: relative; display: block; height: 92px; border-radius: 14px; border: 2px solid var(--ink); overflow: hidden; }
+.level-art.island { background: linear-gradient(180deg, #9adcff 0%, #cfeeff 56%, #8ed66c 56%, #6abf58 100%); }
+.level-sun { position: absolute; right: 12px; top: 10px; width: 22px; height: 22px; border-radius: 50%; background: #ffd35c; border: 2px solid var(--ink); }
+.level-hill { position: absolute; left: -12%; bottom: -26px; width: 124%; height: 60px; border-radius: 50%; background: #79d06a; border-top: 2px solid var(--ink); }
+.level-tree { position: absolute; left: 26%; bottom: 20px; width: 26px; height: 36px; }
+.level-tree::before { content: ''; position: absolute; left: 50%; bottom: 0; width: 6px; height: 15px; margin-left: -3px; background: #8a5a3c; border-radius: 2px; }
+.level-tree::after { content: ''; position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50% 50% 46% 46%; background: #4fae5a; border: 2px solid var(--ink); }
+.level-art.planet { background: radial-gradient(circle at 72% 24%, #3a1a6b 0%, #170b30 52%, #06020f 100%); }
+.level-giant { position: absolute; right: 12px; top: 12px; width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle at 34% 30%, #e3b6f7, #7a5cc9 58%, #4a2f9e); box-shadow: 0 0 18px rgba(255,154,230,.55); }
+.level-ring { position: absolute; right: 0; top: 28px; width: 68px; height: 14px; border: 2px solid #ffc9f2; border-radius: 50%; transform: rotate(-18deg); opacity: .85; }
+.level-star { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px #9af7ff; }
+.level-star.s1 { left: 16px; top: 18px; }
+.level-star.s2 { left: 36px; top: 44px; width: 3px; height: 3px; }
+.level-star.s3 { left: 12px; top: 62px; width: 3px; height: 3px; }
+.level-copy { display: flex; flex-direction: column; gap: 2px; min-height: 46px; }
+.level-copy b { font-family: var(--font-display); font-size: 17px; line-height: 1.1; }
+.level-copy small { font-size: 12px; color: var(--ink-soft); line-height: 1.3; font-weight: 700; }
+.level-lock {
+  position: absolute;
+  inset: 10px 10px auto;
+  height: 92px;
+  display: none;
+  place-items: center;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(10,4,24,.74);
+  color: #fff6e0;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: center;
+  font-weight: 800;
+}
+.level-card.is-locked .level-lock { display: grid; }
+.level-card.is-locked .level-art { filter: grayscale(.55) brightness(.72); }
+.level-card.is-locked .level-copy { opacity: .62; }
 .title-foot { position: absolute; right: 4vw; bottom: 3vh; color: rgba(255,255,255,.85); font-size: 12px; text-shadow: 0 1px 2px rgba(58,46,79,.4); }
 
 /* ─── HUD ─────────────────────────────────────────────────────────────── */
@@ -253,8 +308,9 @@ kbd.round.y { background: #ffe08a; }
   backdrop-filter: blur(6px);
 }
 .tasks { width: min(330px, 62vw); padding: 12px 14px 10px; }
-.tasks h2 { margin: 0 0 8px; font-family: var(--font-display); font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
-.task-list { display: flex; flex-direction: column; gap: 6px; }
+.tasks h2 { margin: 0 0 8px; font-family: var(--font-display); font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tasks-count { font-size: 12px; letter-spacing: .04em; color: var(--ink); background: var(--gold); border: 2px solid var(--ink); border-radius: 999px; padding: 1px 8px; }
+.task-list { display: flex; flex-direction: column; gap: 6px; max-height: 42vh; overflow: auto; scrollbar-width: thin; }
 .tasks-empty { margin: 2px 0 4px; font-size: 13px; color: var(--ink-soft); }
 .task { display: flex; align-items: center; gap: 9px; padding: 5px 6px; border-radius: 12px; background: rgba(58,46,79,.04); }
 .task.is-done { background: rgba(99,198,106,.16); }
@@ -265,7 +321,7 @@ kbd.round.y { background: #ffe08a; }
 .task-icon { width: 22px; height: 22px; color: var(--leaf-deep); }
 .task-icon svg { width: 100%; height: 100%; }
 .hud-right { display: flex; align-items: flex-start; gap: 10px; }
-.inventory { display: flex; gap: 4px; padding: 7px 10px; border-radius: 18px; }
+.inventory { display: flex; gap: 3px; padding: 7px 9px; border-radius: 18px; overflow: hidden; }
 .inv-item { display: flex; align-items: center; gap: 4px; padding: 2px 4px; opacity: 1; transition: opacity .2s; }
 .inv-item.is-empty { opacity: .45; }
 .inv-icon { width: 24px; height: 24px; display: block; }
@@ -309,6 +365,46 @@ kbd.round.y { background: #ffe08a; }
 #ui:not([data-active-screen="hud"]) .hint,
 #ui:not([data-active-screen="hud"]) .prompt { display: none; }
 .hint-glyph { display: flex; gap: 4px; align-items: center; min-width: 0; }
+
+/* Cosmic HUD theme: deep violet panels with crystal-cyan accents while on Планета Звёздная. */
+#ui[data-level="planet"] .panel {
+  background: rgba(24,13,46,.92);
+  border-color: #0a0418;
+  box-shadow: 0 5px 0 #0a0418, 0 12px 26px rgba(3,0,10,.55);
+  color: #f4eeff;
+}
+#ui[data-level="planet"] .tasks h2 { color: #b9a6e8; }
+#ui[data-level="planet"] .tasks-count { background: #7ef0ff; color: #0a0418; border-color: #0a0418; }
+#ui[data-level="planet"] .task { background: rgba(255,255,255,.06); }
+#ui[data-level="planet"] .task.is-done { background: rgba(126,240,208,.16); }
+#ui[data-level="planet"] .task-copy small,
+#ui[data-level="planet"] .tasks-empty { color: #b9a6e8; }
+#ui[data-level="planet"] .task-icon { color: #7ef0d0; }
+#ui[data-level="planet"] .inv-item b { color: #f4eeff; }
+#ui[data-level="planet"] .compass {
+  background: rgba(24,13,46,.94);
+  color: #f4eeff;
+  border-color: #0a0418;
+  box-shadow: 0 4px 0 #0a0418;
+}
+#ui[data-level="planet"] .hint {
+  background: rgba(24,13,46,.95);
+  color: #f4eeff;
+  border-color: #0a0418;
+  box-shadow: 0 4px 0 #0a0418, 0 10px 20px rgba(3,0,10,.5);
+}
+#ui[data-level="planet"] .icon-btn { background: rgba(24,13,46,.92); color: #f4eeff; border-color: #0a0418; box-shadow: 0 4px 0 #0a0418; }
+#ui[data-level="planet"] .popup { background: #1c0f36; color: #f4eeff; border-color: #0a0418; box-shadow: 0 3px 0 #0a0418; }
+#ui[data-level="planet"] .popup-quest { background: #ffe9a8; color: #241a3f; }
+#ui[data-level="planet"] .banner {
+  background: linear-gradient(180deg, #2a1650, #160a30);
+  color: #f4eeff;
+  border-color: #0a0418;
+  box-shadow: 0 6px 0 #0a0418, 0 16px 30px rgba(3,0,10,.6);
+}
+#ui[data-level="planet"] .banner small { color: #b9a6e8; }
+#ui[data-level="planet"] .banner-icon { color: #7ef0d0; }
+#ui[data-level="planet"] .prompt { background: #0a0418; border-color: #7ef0ff; }
 .hint-glyph:empty { display: none; }
 .hint-text { overflow: hidden; text-overflow: ellipsis; }
 .hint-spark { color: var(--gold-deep); font-size: 24px; }
@@ -610,6 +706,19 @@ body.has-touch .inventory { max-width: 46vw; }
   .logo-text { font-size: clamp(56px, 16vw, 84px); }
   .logo-small { font-size: 16px; }
   .tagline { margin: 14px 0; max-width: 100%; }
+  .level-picker { gap: 9px; margin-bottom: 12px; }
+  .level-card { padding: 8px 8px 10px; border-radius: 16px; }
+  .level-art { height: 72px; }
+  .level-lock { height: 72px; inset: 8px 8px auto; font-size: 10px; padding: 5px 6px; }
+  .level-copy b { font-size: 15px; }
+  .level-copy small { font-size: 10px; }
+  .level-copy { min-height: 40px; }
+  #ui[data-level="planet"] .tasks { width: min(184px, 47vw); padding: 8px 9px 7px; }
+  #ui[data-level="planet"] .inventory { flex-wrap: wrap; justify-content: flex-end; max-width: 132px; gap: 1px 3px; padding: 5px 6px; }
+  #ui[data-level="planet"] .inv-item { gap: 2px; padding: 1px 2px; }
+  #ui[data-level="planet"] .inv-icon { width: 17px; height: 17px; }
+  #ui[data-level="planet"] .inv-item b { font-size: 11px; min-width: 10px; }
+  body.has-touch .touch-look-cue { top: 150px; }
   .menu-buttons { gap: 9px; }
   .menu-buttons .btn { font-size: 16px; min-height: 48px; padding: 10px 18px; }
   .menu-buttons .big { font-size: 21px; min-height: 58px; }
@@ -661,6 +770,11 @@ body.has-touch .inventory { max-width: 46vw; }
   .logo-text { font-size: 56px; }
   .logo-small { font-size: 14px; }
   .tagline { display: none; }
+  .level-picker { margin-bottom: 10px; }
+  .level-art { height: 58px; }
+  .level-lock { height: 58px; inset: 8px 8px auto; font-size: 9px; }
+  .level-copy { min-height: 0; }
+  .level-copy small { display: none; }
   .name-field { margin-bottom: 10px; }
   .name-field span { display: none; }
   .menu-buttons .btn { min-height: 44px; font-size: 15px; padding: 8px 16px; }

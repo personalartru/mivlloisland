@@ -118,6 +118,7 @@ async function boot(): Promise<void> {
       game.reducedMotion = save.data.reducedMotion
       g = game
     }
+    ui.setLevel(level)
     audio.stopDialog()
     audio.unlock()
     audio.startMusic()
@@ -147,10 +148,10 @@ async function boot(): Promise<void> {
     input.lockPointer()
   }
 
-  const onEnd = (journey: JourneyState, level: LevelId) => {
+  const onEnd = (journey: JourneyState) => {
     input.unlockPointer()
     pendingResult = { score: journey.score, durationMs: Math.max(1000, Math.round(journey.elapsed * 1000)) }
-    ui.showResults(journey, level)
+    ui.showResults(journey)
     if (!ONLINE_ENABLED || journey.unranked) {
       ui.setOnlineStatus('unranked')
       return
@@ -169,13 +170,12 @@ async function boot(): Promise<void> {
     tutorialDone: () => save.update({ tutorialDone: true }),
     end: (journey, level) => {
       if (level === 'island' && !save.data.planetUnlocked) save.update({ planetUnlocked: true })
-      onEnd(journey, level)
+      onEnd(journey)
     },
   }
 
   const ui = new Ui(i18n, save, audio, input, {
     play: level => startRun(level, !save.data.tutorialDone && level === 'island'),
-    startPlanet: () => startRun('planet', false),
     pause,
     restart: () => startRun(game?.level ?? 'island', false),
     resume,
@@ -275,7 +275,7 @@ async function boot(): Promise<void> {
 
   ui.setBootProgress(1)
   window.setTimeout(() => ui.show('title'), 250)
-  ;(window as unknown as { __game: unknown }).__game = { game: g, ui, input, save }
+  ;(window as unknown as { __game: unknown }).__game = { get game() { return g }, ui, input, save }
 }
 
 async function loadModels(assets: import('./engine/assets').Assets, onProgress: (progress: number) => void): Promise<ModelPack> {

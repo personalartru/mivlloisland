@@ -1,5 +1,6 @@
 import { CONFIG } from './config'
-import { QUESTS, TOTAL_ITEMS, type ItemKind, type QuestId } from './quests'
+import type { ItemKind, LevelContent, QuestId } from './content'
+import type { LevelId } from './levels'
 
 /**
  * Pure journey rules: inventory, quest progress, score and the final celebration. No three.js,
@@ -10,6 +11,7 @@ export type QuestStatus = 'available' | 'active' | 'done'
 export type JourneyPhase = 'playing' | 'won'
 
 export type JourneyState = {
+  level: LevelId
   unranked: boolean
   phase: JourneyPhase
   inventory: Record<ItemKind, number>
@@ -20,31 +22,38 @@ export type JourneyState = {
 }
 
 function emptyInventory(): Record<ItemKind, number> {
-  return { berry: 0, crystal: 0, mushroom: 0, star: 0 }
+  return {
+    berry: 0, crystal: 0, mushroom: 0, star: 0,
+    stardust: 0, seed: 0, nebula: 0, shard: 0, spark: 0, lunar: 0,
+  }
 }
 
 function emptyQuests(): Record<QuestId, QuestStatus> {
-  return { grandma: 'available', fairy: 'available', mushroom: 'available', cat: 'available' }
+  return {
+    grandma: 'available', fairy: 'available', mushroom: 'available', cat: 'available',
+    lumo: 'available', bip: 'available', whale: 'available', keeper: 'available', comet: 'available', lunatic: 'available',
+  }
 }
 
-export function completedCount(s: JourneyState): number {
-  return QUESTS.filter(q => s.quests[q.id] === 'done').length
+export function completedCount(s: JourneyState, content: LevelContent): number {
+  return content.quests.filter(q => s.quests[q.id] === 'done').length
 }
 
-export function allDone(s: JourneyState): boolean {
-  return completedCount(s) === QUESTS.length
+export function allDone(s: JourneyState, content: LevelContent): boolean {
+  return completedCount(s, content) === content.quests.length
 }
 
-export function scoreOf(s: JourneyState, rules = CONFIG): number {
-  return s.totalCollected * rules.quest.itemPoints + completedCount(s) * rules.quest.questPoints + (allDone(s) ? rules.quest.finishBonus : 0)
+export function scoreOf(s: JourneyState, content: LevelContent, rules = CONFIG): number {
+  return s.totalCollected * rules.quest.itemPoints + completedCount(s, content) * rules.quest.questPoints + (allDone(s, content) ? rules.quest.finishBonus : 0)
 }
 
-function rescored(s: JourneyState, rules = CONFIG): JourneyState {
-  return { ...s, score: scoreOf(s, rules) }
+function rescored(s: JourneyState, content: LevelContent, rules = CONFIG): JourneyState {
+  return { ...s, score: scoreOf(s, content, rules) }
 }
 
-export function createJourney(rules = CONFIG): JourneyState {
+export function createJourney(content: LevelContent, rules = CONFIG): JourneyState {
   const base: JourneyState = {
+    level: content.id,
     unranked: false,
     phase: 'playing',
     inventory: emptyInventory(),
@@ -53,7 +62,7 @@ export function createJourney(rules = CONFIG): JourneyState {
     totalCollected: 0,
     score: 0,
   }
-  return rescored(base, rules)
+  return rescored(base, content, rules)
 }
 
 export function tick(s: JourneyState, dt: number): JourneyState {
@@ -62,14 +71,14 @@ export function tick(s: JourneyState, dt: number): JourneyState {
 }
 
 /** A collectible was touched. The item stays in the backpack so children can see their collection. */
-export function pickup(s: JourneyState, kind: ItemKind, rules = CONFIG): { state: JourneyState; gained: number } {
+export function pickup(s: JourneyState, kind: ItemKind, content: LevelContent, rules = CONFIG): { state: JourneyState; gained: number } {
   if (s.phase !== 'playing') return { state: s, gained: 0 }
   const next: JourneyState = {
     ...s,
     inventory: { ...s.inventory, [kind]: s.inventory[kind] + 1 },
-    totalCollected: Math.min(TOTAL_ITEMS, s.totalCollected + 1),
+    totalCollected: Math.min(content.totalItems, s.totalCollected + 1),
   }
-  return { state: rescored(next, rules), gained: 1 }
+  return { state: rescored(next, content, rules), gained: 1 }
 }
 
 export function acceptQuest(s: JourneyState, id: QuestId): { state: JourneyState; accepted: boolean } {
@@ -77,22 +86,22 @@ export function acceptQuest(s: JourneyState, id: QuestId): { state: JourneyState
   return { state: { ...s, quests: { ...s.quests, [id]: 'active' } }, accepted: true }
 }
 
-export function missingFor(s: JourneyState, id: QuestId): number {
-  const quest = QUESTS.find(q => q.id === id)
+export function missingFor(s: JourneyState, id: QuestId, content: LevelContent): number {
+  const quest = content.quests.find(q => q.id === id)
   if (!quest) return 0
   return Math.max(0, quest.need - s.inventory[quest.item])
 }
 
-export function isReady(s: JourneyState, id: QuestId): boolean {
-  return s.quests[id] === 'active' && missingFor(s, id) === 0
+export function isReady(s: JourneyState, id: QuestId, content: LevelContent): boolean {
+  return s.quests[id] === 'active' && missingFor(s, id, content) === 0
 }
 
 /** Hand collected items to a resident. Only an active, fully supplied quest can be turned in. */
-export function turnIn(s: JourneyState, id: QuestId, rules = CONFIG): { state: JourneyState; completed: boolean } {
-  if (s.phase !== 'playing' || !isReady(s, id)) return { state: s, completed: false }
+export function turnIn(s: JourneyState, id: QuestId, content: LevelContent, rules = CONFIG): { state: JourneyState; completed: boolean } {
+  if (s.phase !== 'playing' || !isReady(s, id, content)) return { state: s, completed: false }
   const next: JourneyState = { ...s, quests: { ...s.quests, [id]: 'done' } }
-  const done = allDone(next)
-  return { state: rescored({ ...next, phase: done ? 'won' : 'playing' }, rules), completed: true }
+  const done = allDone(next, content)
+  return { state: rescored({ ...next, phase: done ? 'won' : 'playing' }, content, rules), completed: true }
 }
 
 /** Celebration stars: completing every task always earns all three. */
