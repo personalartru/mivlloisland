@@ -19,6 +19,14 @@ describe('save', () => {
     expect(s.playerName).toBe('a very long play')
   })
 
+  it('migrates old saves and persists the unlocked planet', () => {
+    const old = parseSave(JSON.stringify({ version: 1, tutorialDone: true }))
+    expect(old.version).toBe(2)
+    expect(old.planetUnlocked).toBe(false)
+    const fresh = parseSave(JSON.stringify({ version: 2, planetUnlocked: true }))
+    expect(fresh.planetUnlocked).toBe(true)
+  })
+
   it('keeps a bounded, ordered leaderboard', () => {
     let board = [] as ReturnType<typeof defaultSave>['leaderboard']
     for (let i = 0; i < LEADERBOARD_SIZE + 3; i += 1) board = insertScore(board, { name: `p${i}`, score: i * 10, seconds: 60, at: i }).board

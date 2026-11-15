@@ -6,6 +6,7 @@ import type { CompassTarget, DialogAction, DialogData, DialogVoiceLine, Hint } f
 import { ITEMS, ITEM_KINDS, QUESTS, questById, type QuestId } from '../game/quests'
 import { formatDuration, starsOf, type JourneyState } from '../game/rules'
 import type { NpcInfo } from '../game/npcs'
+import type { LevelId } from '../game/levels'
 
 export type Screen = 'boot' | 'title' | 'hud' | 'pause' | 'settings' | 'leaderboard' | 'results' | 'dialog'
 
@@ -14,7 +15,8 @@ export type OnlineState = 'pending' | 'saved' | 'error' | 'unranked'
 export type OnlineEntry = { rank: number; name: string; score: number; seconds: number | null }
 
 export type UiActions = {
-  play(): void
+  play(level: LevelId): void
+  startPlanet(): void
   pause(): void
   resume(): void
   restart(): void
@@ -55,6 +57,7 @@ export class Ui {
   private readonly hudCache = new Map<string, string>()
   private hintKey: Hint | null = null
   private lastJourney?: JourneyState
+  private lastLevel: LevelId = 'island'
   private savedRank = -1
   private bannerTimer = 0
   private onlineMessage = ''
@@ -83,7 +86,7 @@ export class Ui {
     i18n.onChange(() => {
       this.translate()
       this.refreshSettings()
-      if (this.lastJourney) this.showResults(this.lastJourney, false)
+      if (this.lastJourney) this.showResults(this.lastJourney, this.lastLevel, false)
     })
     this.lastMethod = input.method
     this.translate()
@@ -123,7 +126,10 @@ export class Ui {
       el.setAttribute('aria-hidden', String(!active))
     }
     this.root.dataset.activeScreen = screen
-    if (screen === 'title') this.renderBest()
+    if (screen === 'title') {
+      this.renderBest()
+      this.refreshLevelButtons()
+    }
     if (screen === 'leaderboard') {
       this.renderLocalBoard()
       this.renderOnlineBoard()
@@ -304,8 +310,9 @@ export class Ui {
 
   // ─── results & boards ────────────────────────────────────────────────────
 
-  showResults(journey: JourneyState, record = true): void {
+  showResults(journey: JourneyState, level: LevelId = 'island', record = true): void {
     this.lastJourney = journey
+    this.lastLevel = level
     if (record) {
       const entry = { name: this.save.data.playerName, score: journey.score, seconds: Math.round(journey.elapsed), at: Date.now() }
       const { board, rank } = insertScore(this.save.data.leaderboard, entry)
@@ -324,6 +331,7 @@ export class Ui {
     this.q('.results-stats').innerHTML = stats.map(([key, value]) => `<div class="result-stat"><span>${this.i18n.t(key)}</span><b>${value}</b></div>`).join('')
     this.q<HTMLElement>('.results-newbest').hidden = this.savedRank !== 0
     this.q('.results-newbest').textContent = this.i18n.t('results.newBest')
+    this.q<HTMLButtonElement>('[data-action="next-level"]').hidden = level !== 'island' || !this.save.data.planetUnlocked
     this.setScreen('results')
     this.setOnlineStatus('pending')
   }
@@ -373,6 +381,12 @@ export class Ui {
     }
     const entries = this.save.data.leaderboard.map((entry, i) => ({ rank: i + 1, name: entry.name, score: entry.score, seconds: entry.seconds }))
     el.innerHTML = rows(entries, this.i18n.t('leaderboard.name'), this.i18n.t('leaderboard.score'), this.i18n.t('leaderboard.time'))
+  }
+
+  private refreshLevelButtons(): void {
+    const button = this.q<HTMLButtonElement>('[data-action="play-planet"]')
+    button.disabled = !this.save.data.planetUnlocked
+    button.title = this.save.data.planetUnlocked ? '' : this.i18n.t('level.planet.locked')
   }
 
   private renderBest(): void {
@@ -499,7 +513,9 @@ export class Ui {
     const action = el.dataset.action
     if (action) {
       this.audio.play('ui')
-      if (action === 'play') this.actions.play()
+      if (action === 'play') this.actions.play('island')
+      else if (action === 'play-planet') this.actions.play('planet')
+      else if (action === 'next-level') this.actions.startPlanet()
       else if (action === 'pause') this.actions.pause()
       else if (action === 'resume') this.actions.resume()
       else if (action === 'restart') this.actions.restart()
@@ -589,6 +605,7 @@ function template(): string {
       </label>
       <div class="menu-buttons">
         <button class="btn primary big" data-action="play" data-nav>${ICON.play}<span data-i18n="menu.play"></span></button>
+        <button class="btn planet-level" data-action="play-planet" data-nav>${ICON.sparkle}<span data-i18n="menu.planet"></span></button>
         <button class="btn" data-action="leaderboard" data-nav data-i18n="menu.leaderboard"></button>
         <button class="btn" data-action="settings" data-nav data-i18n="menu.settings"></button>
       </div>
@@ -705,6 +722,7 @@ function template(): string {
       <div class="stack row">
         <button class="btn retry-submit" data-action="retry-submit" data-nav data-i18n="results.retrySubmit" hidden></button>
         <button class="btn primary" data-action="restart" data-nav data-i18n="results.retry"></button>
+        <button class="btn planet-next" data-action="next-level" data-nav data-i18n="results.nextLevel" hidden></button>
         <button class="btn" data-action="quit" data-nav data-i18n="results.title"></button>
       </div>
     </div>

@@ -8,6 +8,7 @@ import { SAVE_KEY, SaveStore, type SaveData } from './engine/save'
 import type { Game, GameHooks } from './game/game'
 import type { ModelPack } from './game/models'
 import { MODEL_URLS } from './game/modelUrls'
+import type { LevelId } from './game/levels'
 import type { JourneyState } from './game/rules'
 import { TouchControls } from './ui/touch'
 import { Ui, type OnlineEntry } from './ui/ui'
@@ -26,6 +27,7 @@ async function boot(): Promise<void> {
   const input = new Input(canvas)
   const audio = new Audio()
   let game: Game | undefined
+  let g: Game | undefined
   let lockLostAt = 0
 
   // ─── online leaderboard state ─────────────────────────────────────────
@@ -109,8 +111,13 @@ async function boot(): Promise<void> {
     if (game) game.reducedMotion = data.reducedMotion
   }
 
-  const startRun = (tutorial: boolean) => {
-    if (!game) return
+  const startRun = (level: LevelId, tutorial: boolean) => {
+    if (!game || !models) return
+    if (game.level !== level) {
+      game = new Game(renderer, input, audio, i18n, hooks, models, level)
+      game.reducedMotion = save.data.reducedMotion
+      g = game
+    }
     audio.stopDialog()
     audio.unlock()
     audio.startMusic()
@@ -140,10 +147,10 @@ async function boot(): Promise<void> {
     input.lockPointer()
   }
 
-  const onEnd = (journey: JourneyState) => {
+  const onEnd = (journey: JourneyState, level: LevelId) => {
     input.unlockPointer()
     pendingResult = { score: journey.score, durationMs: Math.max(1000, Math.round(journey.elapsed * 1000)) }
-    ui.showResults(journey)
+    ui.showResults(journey, level)
     if (!ONLINE_ENABLED || journey.unranked) {
       ui.setOnlineStatus('unranked')
       return
@@ -160,13 +167,17 @@ async function boot(): Promise<void> {
     dialogClose: () => ui.hideDialog(),
     questDone: id => ui.questDone(id),
     tutorialDone: () => save.update({ tutorialDone: true }),
-    end: onEnd,
+    end: (journey, level) => {
+      if (level === 'island' && !save.data.planetUnlocked) save.update({ planetUnlocked: true })
+      onEnd(journey, level)
+    },
   }
 
   const ui = new Ui(i18n, save, audio, input, {
-    play: () => startRun(!save.data.tutorialDone),
+    play: level => startRun(level, !save.data.tutorialDone && level === 'island'),
+    startPlanet: () => startRun('planet', false),
     pause,
-    restart: () => startRun(false),
+    restart: () => startRun(game?.level ?? 'island', false),
     resume,
     quit: () => {
       audio.stopDialog()
@@ -218,7 +229,8 @@ async function boot(): Promise<void> {
   }
 
   const renderer = new Renderer(canvas, save.data.quality)
-  game = new Game(renderer, input, audio, i18n, hooks, models)
+  game = new Game(renderer, input, audio, i18n, hooks, models, 'island')
+  g = game
   game.reducedMotion = save.data.reducedMotion
   if (import.meta.env.DEV) {
     const [{ registerGameTuning }, { tuning }] = await Promise.all([
@@ -226,12 +238,11 @@ async function boot(): Promise<void> {
     ])
     await registerGameTuning(tuning)
   }
-  const g = game
-
   const loop = new GameLoop({
     beforeFrame: frameSeconds => input.update(frameSeconds),
-    step: dt => g.step(dt),
+    step: dt => g?.step(dt),
     render: (alpha, frameSeconds) => {
+      if (!g) return
       if (input.consume('pause') && performance.now() - lockLostAt > 300) {
         if (g.mode === 'playing') pause()
         else if (g.mode === 'paused' && ui.screen === 'pause') resume()
@@ -247,6 +258,7 @@ async function boot(): Promise<void> {
   loop.start()
 
   document.addEventListener('pointerlockchange', () => {
+    if (!g) return
     if (!document.pointerLockElement && g.mode === 'playing' && input.method === 'keyboard') {
       lockLostAt = performance.now()
       pause()
@@ -257,9 +269,9 @@ async function boot(): Promise<void> {
   })
   window.addEventListener('game:pause', pause)
   canvas.addEventListener('click', () => {
-    if (g.mode === 'playing') input.lockPointer()
+    if (g?.mode === 'playing') input.lockPointer()
   })
-  new TouchControls(document.getElementById('ui')!, input, () => g.mode === 'playing')
+  new TouchControls(document.getElementById('ui')!, input, () => g?.mode === 'playing')
 
   ui.setBootProgress(1)
   window.setTimeout(() => ui.show('title'), 250)

@@ -3,6 +3,7 @@ import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { Physics } from '../engine/physics'
 import { instantiate, type PropKey } from './models'
 import { haloTexture } from './textures'
+import type { LevelId } from './levels'
 
 /**
  * The single cozy island of Чудо-остров. The ground is flat so very young players can never get
@@ -87,10 +88,11 @@ export class World {
   private readonly water: THREE.Mesh
   private time = 0
 
-  constructor(private readonly physics: Physics, shadowMapSize: number, props: Record<PropKey, GLTF>) {
+  constructor(private readonly physics: Physics, shadowMapSize: number, props: Record<PropKey, GLTF>, readonly level: LevelId = 'island') {
     const random = rng(20261115)
-    this.scene.background = PALETTE.horizon.clone()
-    this.scene.fog = new THREE.Fog(PALETTE.horizon, 65, 190)
+    const cosmic = level === 'planet'
+    this.scene.background = new THREE.Color(cosmic ? '#120d3b' : PALETTE.horizon)
+    this.scene.fog = new THREE.Fog(cosmic ? '#21145d' : PALETTE.horizon, cosmic ? 80 : 65, 190)
 
     this.scene.add(this.makeSky())
     this.scene.add(new THREE.HemisphereLight('#d8f1ff', '#7fae63', 1.15))
@@ -107,6 +109,7 @@ export class World {
     this.scene.add(this.sun, this.sun.target)
 
     this.addIsland()
+    if (cosmic) this.addSpaceTheme(random)
     this.addPaths()
     this.water = this.addPond(random)
     this.addTree(props.tree, random)
@@ -118,6 +121,39 @@ export class World {
     this.addDistantIslands(random)
     this.addButterflies(random)
     this.addFireflies(random)
+  }
+
+  private addSpaceTheme(random: () => number): void {
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(WORLD.radius - 0.5, 72), new THREE.MeshStandardMaterial({ color: '#4d3b91', roughness: 0.98, metalness: 0.05 }))
+    ground.rotation.x = -Math.PI / 2
+    ground.position.y = 0.025
+    ground.receiveShadow = true
+    this.scene.add(ground)
+    const craterMat = new THREE.MeshStandardMaterial({ color: '#302564', roughness: 1 })
+    for (let i = 0; i < 18; i += 1) {
+      const a = random() * Math.PI * 2
+      const d = 4 + random() * 21
+      const crater = new THREE.Mesh(new THREE.CylinderGeometry(0.45 + random() * 0.75, 0.65 + random() * 0.9, 0.035, 16), craterMat)
+      crater.rotation.x = -Math.PI / 2
+      crater.position.set(Math.cos(a) * d, 0.06, Math.sin(a) * d)
+      this.scene.add(crater)
+    }
+    const ring = new THREE.Mesh(new THREE.RingGeometry(33, 36, 96), new THREE.MeshBasicMaterial({ color: '#f4a9ff', transparent: true, opacity: 0.42, side: THREE.DoubleSide }))
+    ring.rotation.x = Math.PI * 0.39
+    ring.rotation.z = -0.15
+    ring.position.y = 7
+    this.scene.add(ring)
+    const starMat = new THREE.MeshBasicMaterial({ color: '#fff4bd' })
+    for (let i = 0; i < 90; i += 1) {
+      const star = new THREE.Mesh(new THREE.SphereGeometry(0.08 + random() * 0.1, 6, 4), starMat)
+      const a = random() * Math.PI * 2
+      const d = 52 + random() * 85
+      star.position.set(Math.cos(a) * d, 12 + random() * 65, Math.sin(a) * d)
+      this.scene.add(star)
+    }
+    const moon = new THREE.Mesh(new THREE.SphereGeometry(5.5, 20, 12), new THREE.MeshStandardMaterial({ color: '#c9a6ff', emissive: '#4a2e86', emissiveIntensity: 0.35 }))
+    moon.position.set(-42, 32, -62)
+    this.scene.add(moon)
   }
 
   /** Per-frame ambience: drifting clouds, water shimmer, butterflies and the sun following the player. */

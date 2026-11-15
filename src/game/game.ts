@@ -19,6 +19,7 @@ import {
 } from './rules'
 import { tuning } from './tuning'
 import { World } from './world'
+import type { LevelId } from './levels'
 
 export type Mode = 'attract' | 'playing' | 'talking' | 'paused' | 'ended'
 export type Hint = 'move' | 'look' | 'talk' | 'collect'
@@ -56,7 +57,7 @@ export type GameHooks = {
   dialogClose(): void
   questDone(id: QuestId): void
   tutorialDone(): void
-  end(journey: JourneyState): void
+  end(journey: JourneyState, level: LevelId): void
 }
 
 /**
@@ -85,6 +86,7 @@ export class Game {
   private savedYaw = 0
   private savedPitch = 0.32
   private readonly down = new RAPIER.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 })
+  readonly level: LevelId
 
   constructor(
     private readonly renderer: Renderer,
@@ -93,9 +95,11 @@ export class Game {
     private readonly i18n: I18n,
     private readonly hooks: GameHooks,
     models: ModelPack,
+    level: LevelId = 'island',
   ) {
+    this.level = level
     this.physics = new Physics(CONFIG.player.gravity)
-    this.world = new World(this.physics, renderer.shadowMapSize, models.props)
+    this.world = new World(this.physics, renderer.shadowMapSize, models.props, level)
     this.player = new Player(this.physics, this.world.spawn, models.player)
     this.cam = new FollowCamera(this.physics, this.player.collider)
     this.items = new Items(this.world.itemSpots, models.items)
@@ -217,7 +221,7 @@ export class Game {
       if (this.finishTimer <= 0) {
         this.mode = 'ended'
         this.hooks.hint(null)
-        this.hooks.end(this.journey)
+        this.hooks.end(this.journey, this.level)
       }
     }
   }
