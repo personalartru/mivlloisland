@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "publicationOrigin": "https://personalartru.github.io/plyuhik",
+  "title": "Плюхик и Чудо-остров",
+  "description": "Добрая детская 3D-ходилка: гуляй по волшебному острову, помогай жителям и собирай чудеса.",
+  "defaultCaptions": {
+    "x": "Плюхик и Чудо-остров — добрая 3D-ходилка для детей: гуляй, помогай жителям и собирай чудеса!",
+    "facebook": "Плюхик и Чудо-остров — уютная 3D-прогулка по волшебному острову для всей семьи.",
+    "reddit": "Сделал добрую 3D-игру-ходилку для детей: без проигрыша, с простыми заданиями и сбором чудес.",
+    "discord": "Плюхик и Чудо-остров — волшебный остров, добрые задания и никакого проигрыша. Заходите погулять!"
+  },
+  "assets": {
+    "og": {
+      "digest": "sha256:0c4d389a8ee3bf1caa0229c667dd3dd1c27af63fe5c17042425af351bd728370",
+      "path": "share/0c4d389a8ee3bf1caa0229c667dd3dd1c27af63fe5c17042425af351bd728370.png",
+      "mime": "image/png",
+      "width": 1200,
+      "height": 630,
+      "sizeBytes": 1054951,
+      "sourcePath": "assets/share/og.png"
+    },
+    "favicon": {
+      "digest": "sha256:c2c00c4dd036898263726a0f8545838685b983090932cf684d1aa932844277bd",
+      "path": "share/c2c00c4dd036898263726a0f8545838685b983090932cf684d1aa932844277bd.png",
+      "mime": "image/png",
+      "width": 512,
+      "height": 512,
+      "sizeBytes": 88001,
+      "sourcePath": "assets/share/favicon.png"
+    }
+  }
+}
