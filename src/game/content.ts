@@ -1,17 +1,19 @@
 import type { LevelId } from './levels'
-import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, type LevelLayout } from './layout'
+import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, UNDERWATER_LAYOUT, type LevelLayout } from './layout'
 
 /** Every collectible kind in the whole game. Each level uses its own subset. */
 export type ItemKind =
   | 'berry' | 'crystal' | 'mushroom' | 'star'
   | 'stardust' | 'seed' | 'nebula' | 'shard' | 'spark' | 'lunar'
   | 'cog' | 'bolt' | 'spring' | 'valve' | 'gear'
+  | 'pearl' | 'coral' | 'shell' | 'kelp' | 'bubble'
 
 /** Every friendly character with a task. Each level uses its own subset. */
 export type QuestId =
   | 'grandma' | 'fairy' | 'mushroom' | 'cat'
   | 'lumo' | 'bip' | 'whale' | 'keeper' | 'comet' | 'lunatic'
   | 'geara' | 'piston' | 'spring' | 'copper' | 'tick'
+  | 'coralina' | 'octo' | 'splash' | 'pearl' | 'fin'
 
 export type IslandItemKind = Extract<ItemKind, 'berry' | 'crystal' | 'mushroom' | 'star'>
 export type IslandQuestId = Extract<QuestId, 'grandma' | 'fairy' | 'mushroom' | 'cat'>
@@ -132,10 +134,25 @@ export const CLOCKWORK_CONTENT: LevelContent = {
   totalItems: 17, noTasksKey: 'hud.noTasks.clockwork', collectHintKey: 'hint.collect.clockwork', resultsWonKey: 'results.clockwork.won', resultsThanksKey: 'results.clockwork.thanks',
 }
 
+
+export const UNDERWATER_CONTENT: LevelContent = {
+  id: 'underwater', layout: UNDERWATER_LAYOUT, itemKinds: ['pearl', 'coral', 'shell', 'kelp', 'bubble'],
+  items: {
+    pearl: { nameKey: 'item.pearl', color: '#fff0c4', glow: '#fff9e8', height: .62, halo: 1.15 },
+    coral: { nameKey: 'item.coral', color: '#ff887b', glow: '#ffc0b5', height: .72, halo: 1.12 },
+    shell: { nameKey: 'item.shell', color: '#d9b3ff', glow: '#f0ddff', height: .66, halo: 1.12 },
+    kelp: { nameKey: 'item.kelp', color: '#67d6a0', glow: '#b5ffe0', height: .9, halo: 1.05 },
+    bubble: { nameKey: 'item.bubble', color: '#81e7ff', glow: '#d5f9ff', height: .62, halo: 1.25 },
+  },
+  quests: [quest('coralina','pearl',4,'#ffe8ad'), quest('octo','coral',3,'#ff8a7e'), quest('splash','shell',4,'#d5b2ff'), quest('pearl','kelp',3,'#6ed8a0'), quest('fin','bubble',3,'#81e7ff')],
+  totalItems: 17, noTasksKey: 'hud.noTasks.underwater', collectHintKey: 'hint.collect.underwater', resultsWonKey: 'results.underwater.won', resultsThanksKey: 'results.underwater.thanks',
+}
+
 export const CONTENT: Record<LevelId, LevelContent> = {
   island: ISLAND_CONTENT,
   planet: PLANET_CONTENT,
   clockwork: CLOCKWORK_CONTENT,
+  underwater: UNDERWATER_CONTENT,
 }
 
 export function contentFor(level: LevelId): LevelContent {

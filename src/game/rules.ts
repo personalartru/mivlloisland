@@ -26,6 +26,7 @@ function emptyInventory(): Record<ItemKind, number> {
     berry: 0, crystal: 0, mushroom: 0, star: 0,
     stardust: 0, seed: 0, nebula: 0, shard: 0, spark: 0, lunar: 0,
     cog: 0, bolt: 0, spring: 0, valve: 0, gear: 0,
+    pearl: 0, coral: 0, shell: 0, kelp: 0, bubble: 0,
   }
 }
 
@@ -34,6 +35,7 @@ function emptyQuests(): Record<QuestId, QuestStatus> {
     grandma: 'available', fairy: 'available', mushroom: 'available', cat: 'available',
     lumo: 'available', bip: 'available', whale: 'available', keeper: 'available', comet: 'available', lunatic: 'available',
     geara: 'available', piston: 'available', spring: 'available', copper: 'available', tick: 'available',
+    coralina: 'available', octo: 'available', splash: 'available', pearl: 'available', fin: 'available',
   }
 }
 

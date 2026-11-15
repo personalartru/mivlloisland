@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { CONTENT, CLOCKWORK_CONTENT, ISLAND_CONTENT, PLANET_CONTENT } from '../src/game/content'
-import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, type LevelLayout } from '../src/game/layout'
+import { CONTENT, CLOCKWORK_CONTENT, ISLAND_CONTENT, PLANET_CONTENT, UNDERWATER_CONTENT } from '../src/game/content'
+import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, UNDERWATER_LAYOUT, type LevelLayout } from '../src/game/layout'
 import { rng } from '../src/game/world/shared'
 
 const LEVELS: Array<[string, LevelLayout, typeof ISLAND_CONTENT]> = [
   ['Чудо-остров', ISLAND_LAYOUT, ISLAND_CONTENT],
   ['Планета Звёздная', PLANET_LAYOUT, PLANET_CONTENT],
   ['Механический город', CLOCKWORK_LAYOUT, CLOCKWORK_CONTENT],
+  ['Подводная бухта', UNDERWATER_LAYOUT, UNDERWATER_CONTENT],
 ]
 
 describe.each(LEVELS)('%s layout', (_name, layout, content) => {
@@ -93,5 +94,15 @@ describe('the clockwork level', () => {
     expect(CLOCKWORK_LAYOUT.clockwork?.plates).toHaveLength(5)
     expect(CLOCKWORK_LAYOUT.clockwork?.speedPads).toHaveLength(3)
     expect(CONTENT.clockwork).toBe(CLOCKWORK_CONTENT)
+  })
+})
+
+describe('the underwater level', () => {
+  it('has a distinct sea cast and resonator zones', () => {
+    expect(UNDERWATER_CONTENT.quests).toHaveLength(5)
+    expect(UNDERWATER_CONTENT.totalItems).toBe(17)
+    expect(UNDERWATER_LAYOUT.underwater?.resonators).toHaveLength(5)
+    expect(UNDERWATER_LAYOUT.underwater?.bubbleLanes).toHaveLength(3)
+    expect(CONTENT.underwater).toBe(UNDERWATER_CONTENT)
   })
 })

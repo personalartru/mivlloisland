@@ -810,3 +810,19 @@ body.has-touch .inventory { max-width: 46vw; }
 #ui[data-level="clockwork"] .icon-btn { background:#30222d; color:#fff1d4; border-color:#231622; box-shadow:0 4px 0 #231622; }
 #ui[data-level="clockwork"] .prompt { background:#231622; border-color:#7fe0d2; }
 @media (min-width: 960px) { .level-picker { grid-template-columns: repeat(3, 1fr); } }
+
+/* The fourth world: a luminous underwater coral bay. */
+.level-art.underwater { background: radial-gradient(circle at 70% 18%, #57c7c4 0%, #0b5470 44%, #061a35 100%); }
+.level-art.underwater .level-coral { position:absolute; width:48px; height:44px; left:26px; bottom:8px; border-left:9px solid #ff857e; border-radius:50% 50% 0 0; transform:rotate(-18deg); box-shadow:18px -2px 0 -1px #ff9d8c, 31px 6px 0 -4px #ff857e; }
+.level-art.underwater .level-bubble { position:absolute; width:22px; height:22px; right:30px; top:16px; border:4px solid #d5f9ff; border-radius:50%; box-shadow:16px 18px 0 -5px rgba(213,249,255,.75); }
+.level-art.underwater .level-wave { position:absolute; left:12px; right:12px; bottom:12px; height:11px; border-top:4px solid #81e7ff; border-radius:50%; transform:rotate(-4deg); }
+.level-card.underwater { border-color:#1d7181; }
+#ui[data-level="underwater"] .panel { background:rgba(5,35,59,.9); color:#e8ffff; border-color:#04243c; box-shadow:0 5px 0 #04243c,0 12px 28px rgba(3,20,35,.32); }
+#ui[data-level="underwater"] .tasks h2 { color:#9ff9e4; }
+#ui[data-level="underwater"] .tasks-count { background:#81e7ff; color:#06314b; border-color:#04243c; }
+#ui[data-level="underwater"] .task { background:rgba(255,255,255,.08); }
+#ui[data-level="underwater"] .task-copy small, #ui[data-level="underwater"] .tasks-empty { color:#aee7ee; }
+#ui[data-level="underwater"] .task-icon { color:#ffb6b0; }
+#ui[data-level="underwater"] .icon-btn { background:#0b4560; color:#e8ffff; border-color:#04243c; box-shadow:0 4px 0 #04243c; }
+#ui[data-level="underwater"] .prompt { background:#04243c; border-color:#81e7ff; }
+@media (min-width: 960px) { .level-picker { grid-template-columns: repeat(4, 1fr); } }

@@ -180,7 +180,9 @@ export class Game {
       const events: PlayerEvent[] = []
       this.world.updateMechanics?.(this.player.position)
       for (const mechanic of this.world.consumeMechanicEvents?.() ?? []) {
-        this.audio.play(mechanic === 'plate' ? 'clockworkPlate' : 'clockworkMotor')
+        if (mechanic === 'plate') this.audio.play('clockworkPlate')
+        else if (mechanic === 'motor') this.audio.play('clockworkMotor')
+        else this.audio.play(mechanic === 'resonator' ? 'quest' : 'win')
       }
       this.player.step(
         dt,
