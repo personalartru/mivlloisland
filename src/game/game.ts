@@ -179,6 +179,9 @@ export class Game {
     if (playing) {
       const events: PlayerEvent[] = []
       this.world.updateMechanics?.(this.player.position)
+      for (const mechanic of this.world.consumeMechanicEvents?.() ?? []) {
+        this.audio.play(mechanic === 'plate' ? 'clockworkPlate' : 'clockworkMotor')
+      }
       this.player.step(
         dt,
         { moveX: this.input.move.x, moveY: this.input.move.y, sprint: this.input.held('sprint'), jumpPressed, jumpHeld: this.input.held('jump') },

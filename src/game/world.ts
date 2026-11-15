@@ -44,6 +44,7 @@ export type WorldView = {
   resetMechanics?(): void
   updateMechanics?(position: THREE.Vector3): void
   movementMultiplierAt?(position: THREE.Vector3): number
+  consumeMechanicEvents?(): Array<'plate' | 'motor'>
 }
 
 export class IslandWorld implements WorldView {

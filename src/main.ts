@@ -123,7 +123,7 @@ async function boot(): Promise<void> {
     ui.setLevel(level)
     audio.stopDialog()
     audio.unlock()
-    audio.startMusic()
+    audio.startMusic(level)
     ticket = null
     pendingResult = null
     beginError = ''

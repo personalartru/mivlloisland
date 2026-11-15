@@ -14,6 +14,7 @@ export class ClockworkWorld {
   private readonly lamps: THREE.PointLight[] = []
   private readonly smoke: THREE.Sprite[] = []
   private readonly state: ClockworkState
+  private readonly mechanicEvents: Array<'plate' | 'motor'> = []
   private readonly motor: THREE.Group
   private time = 0
   constructor(private readonly physics: Physics, shadowMapSize: number, private readonly layout: LevelLayout) {
@@ -33,12 +34,17 @@ export class ClockworkWorld {
     for (const [i, smoke] of this.smoke.entries()) { smoke.position.y += dt * .45; (smoke.material as THREE.SpriteMaterial).opacity = .18 + Math.sin(this.time * 1.6 + i) * .08; if (smoke.position.y > 5) smoke.position.y = 1 }
   }
   setLanterns(done: number): void { for (let i=0;i<this.lamps.length;i++) this.lamps[i].intensity = i < done ? 1.5 : .05 }
-  resetMechanics(): void { this.state.active.fill(false); this.state.machineActive = false }
+  resetMechanics(): void { this.state.active.fill(false); this.state.machineActive = false; this.mechanicEvents.length = 0 }
   updateMechanics(position: THREE.Vector3): void {
+    const wasActive = this.state.active.slice()
+    const wasMachineActive = this.state.machineActive
     const next = updateClockworkState(this.state, position, this.layout.clockwork!)
     this.state.active = next.active; this.state.machineActive = next.machineActive
+    if (next.active.some((on, i) => on && !wasActive[i])) this.mechanicEvents.push('plate')
+    if (next.machineActive && !wasMachineActive) this.mechanicEvents.push('motor')
     for (const [i, plate] of this.plates.entries()) { const on = this.state.active[i]; (plate.material as THREE.MeshStandardMaterial).emissiveIntensity = on ? 2.2 : .18; (plate.material as THREE.MeshStandardMaterial).color.set(on ? '#f2b35c' : '#5a4052') }
   }
+  consumeMechanicEvents(): Array<'plate' | 'motor'> { return this.mechanicEvents.splice(0) }
   movementMultiplierAt(position: THREE.Vector3): number { return speedMultiplierAt(position, this.layout.clockwork!) }
   get machineActive(): boolean { return this.state.machineActive }
   private addGround(random:()=>number): void { const r=this.layout.radius; const tex=groundTexture('#49323b',['#2d2430','#67464b','#382b38'],['rgba(255,190,110,.35)','rgba(100,240,220,.25)'],this.layout.seed); tex.repeat.set(4,4); const top=new THREE.Mesh(new THREE.CircleGeometry(r,96),new THREE.MeshStandardMaterial({map:tex,roughness:.86,metalness:.18})); top.rotation.x=-Math.PI/2; top.position.y=.02; top.receiveShadow=true; const body=new THREE.Mesh(new THREE.CylinderGeometry(r,r*.9,8,72),flat(new THREE.Color('#2d202b'))); body.position.y=-4; this.scene.add(top,body); this.physics.addStaticCylinder(new THREE.Vector3(0,-4,0),r,8); for(let i=0;i<20;i++){const a=random()*Math.PI*2,d=4+random()*23;const rivet=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.04,8),flat(new THREE.Color('#e1a35b')));rivet.position.set(Math.cos(a)*d,.07,Math.sin(a)*d);this.scene.add(rivet)} }
