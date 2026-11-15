@@ -1,15 +1,17 @@
 import type { LevelId } from './levels'
-import { ISLAND_LAYOUT, PLANET_LAYOUT, type LevelLayout } from './layout'
+import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, type LevelLayout } from './layout'
 
 /** Every collectible kind in the whole game. Each level uses its own subset. */
 export type ItemKind =
   | 'berry' | 'crystal' | 'mushroom' | 'star'
   | 'stardust' | 'seed' | 'nebula' | 'shard' | 'spark' | 'lunar'
+  | 'cog' | 'bolt' | 'spring' | 'valve' | 'gear'
 
 /** Every friendly character with a task. Each level uses its own subset. */
 export type QuestId =
   | 'grandma' | 'fairy' | 'mushroom' | 'cat'
   | 'lumo' | 'bip' | 'whale' | 'keeper' | 'comet' | 'lunatic'
+  | 'geara' | 'piston' | 'spring' | 'copper' | 'tick'
 
 export type IslandItemKind = Extract<ItemKind, 'berry' | 'crystal' | 'mushroom' | 'star'>
 export type IslandQuestId = Extract<QuestId, 'grandma' | 'fairy' | 'mushroom' | 'cat'>
@@ -116,9 +118,24 @@ export const PLANET_CONTENT: LevelContent = {
   resultsThanksKey: 'results.planet.thanks',
 }
 
+
+export const CLOCKWORK_CONTENT: LevelContent = {
+  id: 'clockwork', layout: CLOCKWORK_LAYOUT, itemKinds: ['cog', 'bolt', 'spring', 'valve', 'gear'],
+  items: {
+    cog: { nameKey: 'item.cog', color: '#f2b35c', glow: '#ffe0a0', height: .62, halo: 1.15 },
+    bolt: { nameKey: 'item.bolt', color: '#7fe0d2', glow: '#b9fff4', height: .65, halo: 1.05 },
+    spring: { nameKey: 'item.spring', color: '#f08a68', glow: '#ffc0a8', height: .72, halo: 1.12 },
+    valve: { nameKey: 'item.valve', color: '#a7a9bd', glow: '#e5e6ff', height: .58, halo: 1.08 },
+    gear: { nameKey: 'item.gear', color: '#ffd35c', glow: '#fff0a8', height: .66, halo: 1.15 },
+  },
+  quests: [quest('geara', 'cog', 4, '#f2b35c'), quest('piston', 'bolt', 3, '#7fe0d2'), quest('spring', 'spring', 4, '#f08a68'), quest('copper', 'valve', 3, '#a7a9bd'), quest('tick', 'gear', 3, '#ffd35c')],
+  totalItems: 17, noTasksKey: 'hud.noTasks.clockwork', collectHintKey: 'hint.collect.clockwork', resultsWonKey: 'results.clockwork.won', resultsThanksKey: 'results.clockwork.thanks',
+}
+
 export const CONTENT: Record<LevelId, LevelContent> = {
   island: ISLAND_CONTENT,
   planet: PLANET_CONTENT,
+  clockwork: CLOCKWORK_CONTENT,
 }
 
 export function contentFor(level: LevelId): LevelContent {

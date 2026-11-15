@@ -37,6 +37,11 @@ const ICON: Record<ItemKind, string> = {
   shard: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 1.5 18 8.5 15 22.5 6 16.5Z" fill="#9ad8ff"/><path d="M9.5 1.5 18 8.5 12 12Z" fill="#e6f8ff"/></svg>',
   spark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-2.4 6-6.4 10-12.4 12.6C5 17.8 3 20 2 22c4.6-1.4 8-2 11-4.4C17.6 14 19.6 9 20 4Z" fill="#ffb35c"/><circle cx="17" cy="7" r="4.2" fill="#ffe9a8"/></svg>',
   lunar: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#e8e6ff"><ellipse cx="12" cy="6.4" rx="2.6" ry="4"/><ellipse cx="17.6" cy="11" rx="4" ry="2.6"/><ellipse cx="14.6" cy="17.4" rx="2.8" ry="3.6" transform="rotate(-40 14.6 17.4)"/><ellipse cx="9.4" cy="17.4" rx="2.8" ry="3.6" transform="rotate(40 9.4 17.4)"/><ellipse cx="6.4" cy="11" rx="4" ry="2.6"/></g><circle cx="12" cy="12" r="2.6" fill="#fff6d0"/></svg>',
+  cog: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h6l.6 3a7.5 7.5 0 0 1 2 1.2l2.8-1.1 3 5.2-2.2 2a7.5 7.5 0 0 1 0 2.4l2.2 2-3 5.2-2.8-1.1a7.5 7.5 0 0 1-2 1.2l-.6 3H9l-.6-3a7.5 7.5 0 0 1-2-1.2l-2.8 1.1-3-5.2 2.2-2a7.5 7.5 0 0 1 0-2.4l-2.2-2 3-5.2 2.8 1.1a7.5 7.5 0 0 1 2-1.2Z" fill="#f2b35c"/><circle cx="12" cy="12" r="3.2" fill="#fff4c9"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 1-9 13h7l-1 9 9-13h-7Z" fill="#7fe0d2"/></svg>',
+  spring: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3c10 0 10 5 0 5s-1 5 8 5 9 5 2 8" fill="none" stroke="#f08a68" stroke-width="3" stroke-linecap="round"/></svg>',
+  valve: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="none" stroke="#a7a9bd" stroke-width="3"/><path d="M12 2v20M2 12h20" stroke="#e5e6ff" stroke-width="2"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="#ffd35c" stroke-width="4"/><circle cx="12" cy="12" r="2" fill="#fff0a8"/></svg>',
 }
 
 const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12.8 5.2 5.2L20 6.8" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -366,10 +371,10 @@ export class Ui {
     this.q('.results-newbest').textContent = this.i18n.t('results.newBest')
     const next = otherLevel(journey.level)
     const nextButton = this.q<HTMLButtonElement>('[data-action="switch-level"]')
-    const unlocked = journey.level === 'island' ? this.save.data.planetUnlocked : true
+    const unlocked = next === 'planet' ? this.save.data.planetUnlocked : next === 'clockwork' ? this.save.data.clockworkUnlocked : true
     nextButton.hidden = !unlocked
     nextButton.dataset.level = next
-    nextButton.textContent = this.i18n.t(journey.level === 'island' ? 'results.nextLevel' : 'results.backToIsland')
+    nextButton.textContent = next === 'planet' ? this.i18n.t('results.nextLevel') : next === 'clockwork' ? this.i18n.t('results.nextClockwork') : this.i18n.t('results.backToIsland')
     this.setScreen('results')
     this.setOnlineStatus('pending')
   }
@@ -422,11 +427,12 @@ export class Ui {
   }
 
   private refreshLevelButtons(): void {
-    const button = this.q<HTMLButtonElement>('[data-action="play-planet"]')
-    const unlocked = this.save.data.planetUnlocked
-    button.disabled = !unlocked
-    button.classList.toggle('is-locked', !unlocked)
-    button.title = unlocked ? '' : this.i18n.t('level.planet.locked')
+    for (const [level, unlocked] of [['planet', this.save.data.planetUnlocked], ['clockwork', this.save.data.clockworkUnlocked] ] as const) {
+      const button = this.q<HTMLButtonElement>(`[data-action="play-${level}"]`)
+      button.disabled = !unlocked
+      button.classList.toggle('is-locked', !unlocked)
+      button.title = unlocked ? '' : this.i18n.t(`level.${level}.locked`)
+    }
   }
 
   private renderBest(): void {
@@ -556,6 +562,7 @@ export class Ui {
       this.audio.play('ui')
       if (action === 'play') this.actions.play('island')
       else if (action === 'play-planet') this.actions.play('planet')
+      else if (action === 'play-clockwork') this.actions.play('clockwork')
       else if (action === 'switch-level') this.actions.play((el.dataset.level as LevelId) ?? otherLevel(this.level))
       else if (action === 'pause') this.actions.pause()
       else if (action === 'resume') this.actions.resume()
@@ -653,6 +660,11 @@ function template(): string {
           <span class="level-art planet" aria-hidden="true"><i class="level-giant"></i><i class="level-ring"></i><i class="level-star s1"></i><i class="level-star s2"></i><i class="level-star s3"></i></span>
           <span class="level-copy"><b data-i18n="level.planet.title"></b><small data-i18n="level.planet.subtitle"></small></span>
           <span class="level-lock" data-i18n="level.planet.locked"></span>
+        </button>
+        <button class="level-card clockwork" data-action="play-clockwork" data-nav>
+          <span class="level-art clockwork" aria-hidden="true"><i class="level-gear"></i><i class="level-pipe"></i><i class="level-steam"></i></span>
+          <span class="level-copy"><b data-i18n="level.clockwork.title"></b><small data-i18n="level.clockwork.subtitle"></small></span>
+          <span class="level-lock" data-i18n="level.clockwork.locked"></span>
         </button>
       </div>
       <div class="menu-buttons">

@@ -123,6 +123,7 @@ export class Game {
     this.items.reset()
     this.fx.clear()
     this.world.setLanterns(0)
+    this.world.resetMechanics?.()
     this.player.teleport(this.world.spawn)
     this.player.facing = 0
     this.cam.pitch = 0.32
@@ -177,11 +178,13 @@ export class Game {
 
     if (playing) {
       const events: PlayerEvent[] = []
+      this.world.updateMechanics?.(this.player.position)
       this.player.step(
         dt,
         { moveX: this.input.move.x, moveY: this.input.move.y, sprint: this.input.held('sprint'), jumpPressed, jumpHeld: this.input.held('jump') },
         this.cam.yaw,
         events,
+        this.world.movementMultiplierAt?.(this.player.position) ?? 1,
       )
       this.physics.step(dt)
       this.journey = tick(this.journey, dt)

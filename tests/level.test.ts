@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { CONTENT, ISLAND_CONTENT, PLANET_CONTENT } from '../src/game/content'
-import { ISLAND_LAYOUT, PLANET_LAYOUT, type LevelLayout } from '../src/game/layout'
+import { CONTENT, CLOCKWORK_CONTENT, ISLAND_CONTENT, PLANET_CONTENT } from '../src/game/content'
+import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, type LevelLayout } from '../src/game/layout'
 import { rng } from '../src/game/world/shared'
 
 const LEVELS: Array<[string, LevelLayout, typeof ISLAND_CONTENT]> = [
   ['Чудо-остров', ISLAND_LAYOUT, ISLAND_CONTENT],
   ['Планета Звёздная', PLANET_LAYOUT, PLANET_CONTENT],
+  ['Механический город', CLOCKWORK_LAYOUT, CLOCKWORK_CONTENT],
 ]
 
 describe.each(LEVELS)('%s layout', (_name, layout, content) => {
@@ -82,5 +83,15 @@ describe('the cosmic level is bigger than the island', () => {
   it('registers both levels in the content table', () => {
     expect(CONTENT.island).toBe(ISLAND_CONTENT)
     expect(CONTENT.planet).toBe(PLANET_CONTENT)
+  })
+})
+
+describe('the clockwork level', () => {
+  it('has new tasks and interactive machine zones', () => {
+    expect(CLOCKWORK_CONTENT.quests).toHaveLength(5)
+    expect(CLOCKWORK_CONTENT.totalItems).toBe(17)
+    expect(CLOCKWORK_LAYOUT.clockwork?.plates).toHaveLength(5)
+    expect(CLOCKWORK_LAYOUT.clockwork?.speedPads).toHaveLength(3)
+    expect(CONTENT.clockwork).toBe(CLOCKWORK_CONTENT)
   })
 })

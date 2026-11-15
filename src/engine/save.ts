@@ -8,7 +8,7 @@ export type Quality = 'low' | 'medium' | 'high'
 export type ScoreEntry = { name: string; score: number; seconds: number; at: number }
 
 export type SaveData = {
-  version: 2
+  version: 3
   locale: Locale
   musicVolume: number
   sfxVolume: number
@@ -19,6 +19,7 @@ export type SaveData = {
   reducedMotion: boolean
   tutorialDone: boolean
   planetUnlocked: boolean
+  clockworkUnlocked: boolean
   playerName: string
   leaderboard: ScoreEntry[]
 }
@@ -28,7 +29,7 @@ export const LEADERBOARD_SIZE = 10
 
 export function defaultSave(): SaveData {
   return {
-    version: 2,
+    version: 3,
     locale: 'ru',
     musicVolume: 0.7,
     sfxVolume: 0.8,
@@ -39,6 +40,7 @@ export function defaultSave(): SaveData {
     reducedMotion: false,
     tutorialDone: false,
     planetUnlocked: false,
+    clockworkUnlocked: false,
     playerName: 'Дружок',
     leaderboard: [],
   }
@@ -58,10 +60,10 @@ export function parseSave(raw: string | null): SaveData {
   } catch {
     return base
   }
-  if (data.version !== 1 && data.version !== 2) return base
+  if (data.version !== 1 && data.version !== 2 && data.version !== 3) return base
   const board = Array.isArray(data.leaderboard) ? data.leaderboard : []
   return {
-    version: 2,
+    version: 3,
     locale: 'ru',
     musicVolume: clamp01(data.musicVolume, base.musicVolume),
     sfxVolume: clamp01(data.sfxVolume, base.sfxVolume),
@@ -71,7 +73,8 @@ export function parseSave(raw: string | null): SaveData {
     quality: data.quality === 'low' || data.quality === 'medium' || data.quality === 'high' ? data.quality : base.quality,
     reducedMotion: data.reducedMotion === true,
     tutorialDone: data.tutorialDone === true,
-    planetUnlocked: data.version === 2 && data.planetUnlocked === true,
+    planetUnlocked: (data.version === 2 || data.version === 3) && data.planetUnlocked === true,
+    clockworkUnlocked: data.version === 3 && data.clockworkUnlocked === true,
     playerName: typeof data.playerName === 'string' && data.playerName.trim() ? data.playerName.trim().slice(0, 16) : base.playerName,
     leaderboard: board
       .filter((e): e is ScoreEntry => !!e && typeof e === 'object' && typeof (e as ScoreEntry).name === 'string' && Number.isFinite((e as ScoreEntry).score))

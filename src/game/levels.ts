@@ -1,8 +1,18 @@
-export type LevelId = 'island' | 'planet'
+export type LevelId = 'island' | 'planet' | 'clockwork'
 
-/** Level order used by menus and the "next level" button. */
-export const LEVEL_ORDER: LevelId[] = ['island', 'planet']
+export const LEVEL_ORDER: LevelId[] = ['island', 'planet', 'clockwork']
 
+export function nextLevel(level: LevelId): LevelId | null {
+  const index = LEVEL_ORDER.indexOf(level)
+  return LEVEL_ORDER[index + 1] ?? null
+}
+
+export function previousLevel(level: LevelId): LevelId | null {
+  const index = LEVEL_ORDER.indexOf(level)
+  return LEVEL_ORDER[index - 1] ?? null
+}
+
+/** Kept for existing callers: move to the next available level, wrapping to island. */
 export function otherLevel(level: LevelId): LevelId {
-  return level === 'island' ? 'planet' : 'island'
+  return nextLevel(level) ?? LEVEL_ORDER[0]
 }

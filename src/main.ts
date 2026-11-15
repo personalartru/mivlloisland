@@ -113,6 +113,8 @@ async function boot(): Promise<void> {
 
   const startRun = (level: LevelId, tutorial: boolean) => {
     if (!game || !models) return
+    if (level === 'planet' && !save.data.planetUnlocked) return
+    if (level === 'clockwork' && !save.data.clockworkUnlocked) return
     if (game.level !== level) {
       game = new Game(renderer, input, audio, i18n, hooks, models, level)
       game.reducedMotion = save.data.reducedMotion
@@ -170,6 +172,7 @@ async function boot(): Promise<void> {
     tutorialDone: () => save.update({ tutorialDone: true }),
     end: (journey, level) => {
       if (level === 'island' && !save.data.planetUnlocked) save.update({ planetUnlocked: true })
+      if (level === 'planet' && !save.data.clockworkUnlocked) save.update({ clockworkUnlocked: true })
       onEnd(journey)
     },
   }

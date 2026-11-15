@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import type { LevelId } from './levels'
 import type { ItemKind, QuestId } from './content'
+import type { ClockworkLayout } from './clockwork'
 
 /**
  * Where everything stands on a level. Kept free of three.js scene code so the rules, tests and
@@ -20,6 +21,7 @@ export type LevelLayout = {
   building: THREE.Vector3
   /** Deterministic decoration seed. */
   seed: number
+  clockwork?: ClockworkLayout
 }
 
 const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z)
@@ -77,7 +79,28 @@ export const PLANET_LAYOUT: LevelLayout = {
   seed: 20261116,
 }
 
+
+export const CLOCKWORK_LAYOUT: LevelLayout = {
+  radius: 30, playableRadius: 28.2, spawn: v(0, 1, 0),
+  npcSpots: {
+    geara: v(13, 0, 8), piston: v(-12, 0, 9), spring: v(0, 0, -13), copper: v(-14, 0, -8), tick: v(14, 0, -8),
+  },
+  itemSpots: {
+    cog: [v(9, .7, 5), v(16, .7, 9), v(19, .7, 4), v(12, .7, 13)],
+    bolt: [v(-8, .7, 7), v(-14, .7, 6), v(-17, .7, 12)],
+    spring: [v(-2, .7, -8), v(6, .7, -14), v(1, .7, -22), v(8, .7, -20)],
+    valve: [v(-8, .7, -5), v(-14, .7, -3), v(-20, .7, -8)],
+    gear: [v(9, .7, -5), v(16, .7, -4), v(20, .7, -10)],
+  },
+  water: { center: v(4, 0, -18), radius: 3.8 }, landmark: v(0, 0, 23), building: v(-17, 0, 4), seed: 20261117,
+  clockwork: {
+    plates: [v(0, 0, 8), v(10, 0, 0), v(0, 0, -10), v(-10, 0, 0), v(0, 0, 17)], plateRadius: 1.35,
+    speedPads: [{ center: v(5, 0, 2), radius: 2.2 }, { center: v(-5, 0, 2), radius: 2.2 }, { center: v(0, 0, -4), radius: 2.2 }],
+  },
+}
+
 export const LAYOUTS: Record<LevelId, LevelLayout> = {
   island: ISLAND_LAYOUT,
   planet: PLANET_LAYOUT,
+  clockwork: CLOCKWORK_LAYOUT,
 }

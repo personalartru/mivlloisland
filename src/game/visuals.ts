@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { instantiate, type ModelPack } from './models'
 import { cosmicItem, cosmicNpcVisual } from './cosmic'
+import { clockworkItem, clockworkNpcVisual } from './clockwork-visuals'
 import { itemDef, type IslandItemKind, type IslandQuestId, type ItemKind, type LevelContent, type QuestId } from './content'
 import type { NpcVisual } from './visual-types'
 
@@ -18,7 +19,7 @@ export function npcVisuals(content: LevelContent, models: ModelPack): Partial<Re
   for (const quest of content.quests) {
     const visual = content.id === 'island'
       ? islandNpc(models, quest.id as IslandQuestId)
-      : cosmicNpcVisual(quest.id)
+      : content.id === 'planet' ? cosmicNpcVisual(quest.id) : clockworkNpcVisual(quest.id)
     if (visual) visuals[quest.id] = visual
   }
   return visuals
@@ -29,6 +30,7 @@ export function itemFactory(content: LevelContent, models: ModelPack): (kind: It
   if (content.id === 'island') {
     return kind => instantiate(models.items[kind as IslandItemKind], { height: itemDef(content, kind).height })
   }
+  if (content.id === 'clockwork') return kind => clockworkItem(kind)
   return kind => cosmicItem(kind) ?? new THREE.Mesh(new THREE.OctahedronGeometry(0.25, 0), new THREE.MeshStandardMaterial({ color: '#ffffff' }))
 }
 

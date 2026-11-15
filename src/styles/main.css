@@ -794,3 +794,19 @@ body.has-touch .inventory { max-width: 46vw; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
+
+/* The third world: copper, amber and turquoise clockwork. */
+.level-art.clockwork { background: radial-gradient(circle at 70% 20%, #5b967f 0%, #183a3b 45%, #17121d 100%); }
+.level-art.clockwork .level-gear { position:absolute; width:50px; height:50px; border:9px dotted #f2b35c; border-radius:50%; left:24px; top:14px; box-shadow:0 0 0 7px rgba(242,179,92,.25); }
+.level-art.clockwork .level-pipe { position:absolute; width:11px; height:52px; background:#7fe0d2; right:32px; top:16px; border-radius:8px; transform:rotate(24deg); }
+.level-art.clockwork .level-steam { position:absolute; width:28px; height:28px; border:4px solid rgba(255,240,220,.7); border-radius:50%; right:20px; top:5px; }
+.level-card.clockwork { border-color:#7d5b55; }
+#ui[data-level="clockwork"] .panel { background:rgba(35,24,31,.9); color:#fff1d4; border-color:#231622; box-shadow:0 5px 0 #231622,0 12px 28px rgba(20,10,15,.28); }
+#ui[data-level="clockwork"] .tasks h2 { color:#f2c17c; }
+#ui[data-level="clockwork"] .tasks-count { background:#7fe0d2; color:#173337; border-color:#231622; }
+#ui[data-level="clockwork"] .task { background:rgba(255,255,255,.07); }
+#ui[data-level="clockwork"] .task-copy small, #ui[data-level="clockwork"] .tasks-empty { color:#b6e8dc; }
+#ui[data-level="clockwork"] .task-icon { color:#f2b35c; }
+#ui[data-level="clockwork"] .icon-btn { background:#30222d; color:#fff1d4; border-color:#231622; box-shadow:0 4px 0 #231622; }
+#ui[data-level="clockwork"] .prompt { background:#231622; border-color:#7fe0d2; }
+@media (min-width: 960px) { .level-picker { grid-template-columns: repeat(3, 1fr); } }

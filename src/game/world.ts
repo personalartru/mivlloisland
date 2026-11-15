@@ -3,10 +3,11 @@ import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { Physics } from '../engine/physics'
 import { instantiate, type PropKey } from './models'
 import { haloTexture } from './textures'
-import { ISLAND_LAYOUT, PLANET_LAYOUT, type LevelLayout } from './layout'
+import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, type LevelLayout } from './layout'
 import type { LevelId } from './levels'
 import { flat, jitter, rng, signTexture } from './world/shared'
 import { PlanetWorld } from './world/planet'
+import { ClockworkWorld } from './world/clockwork'
 
 /**
  * The single cozy island of Чудо-остров. The ground is flat so very young players can never get
@@ -40,6 +41,9 @@ export type WorldView = {
   spawn: THREE.Vector3
   update(dt: number, focus: THREE.Vector3): void
   setLanterns(done: number): void
+  resetMechanics?(): void
+  updateMechanics?(position: THREE.Vector3): void
+  movementMultiplierAt?(position: THREE.Vector3): number
 }
 
 export class IslandWorld implements WorldView {
@@ -657,5 +661,7 @@ function shadeCloud(geo: THREE.BufferGeometry): THREE.BufferGeometry {
 export function createWorld(physics: Physics, shadowMapSize: number, props: Record<PropKey, GLTF>, level: LevelId): WorldView {
   return level === 'planet'
     ? new PlanetWorld(physics, shadowMapSize, PLANET_LAYOUT)
-    : new IslandWorld(physics, shadowMapSize, props, ISLAND_LAYOUT)
+    : level === 'clockwork'
+      ? new ClockworkWorld(physics, shadowMapSize, CLOCKWORK_LAYOUT)
+      : new IslandWorld(physics, shadowMapSize, props, ISLAND_LAYOUT)
 }

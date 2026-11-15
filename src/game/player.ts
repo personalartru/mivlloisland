@@ -78,7 +78,7 @@ export class Player {
   }
 
   /** One fixed step. `cameraYaw` makes stick/WASD movement camera-relative. */
-  step(dt: number, intent: PlayerIntent, cameraYaw: number, events: PlayerEvent[]): void {
+  step(dt: number, intent: PlayerIntent, cameraYaw: number, events: PlayerEvent[], speedMultiplier = 1): void {
     const forward = new THREE.Vector3(-Math.sin(cameraYaw), 0, -Math.cos(cameraYaw))
     const right = new THREE.Vector3().crossVectors(forward, UP)
     const wish = new THREE.Vector3().addScaledVector(right, intent.moveX).addScaledVector(forward, intent.moveY)
@@ -88,7 +88,7 @@ export class Player {
     this.coyote = this.grounded ? P.coyoteTime : Math.max(0, this.coyote - dt)
     this.jumpBuffer = intent.jumpPressed ? P.jumpBuffer : Math.max(0, this.jumpBuffer - dt)
 
-    const speed = (intent.sprint ? P.sprintSpeed : P.walkSpeed) * wishLen
+    const speed = (intent.sprint ? P.sprintSpeed : P.walkSpeed) * speedMultiplier * wishLen
     const control = this.grounded ? 1 : P.airControl
     const target = wish.clone().multiplyScalar(speed)
     const horizontal = new THREE.Vector3(this.velocity.x, 0, this.velocity.z)
@@ -166,7 +166,7 @@ export class Player {
       this.walkWeight = THREE.MathUtils.damp(this.walkWeight, walking ? 1 : 0, 9, frameSeconds)
       this.walkAction?.setEffectiveWeight(this.walkWeight)
       this.idleAction?.setEffectiveWeight(1 - this.walkWeight * 0.85)
-      if (this.walkAction) this.walkAction.timeScale = THREE.MathUtils.clamp(speed / P.walkSpeed, 0.7, 1.5)
+      if (this.walkAction) this.walkAction.timeScale = THREE.MathUtils.clamp(speed / P.walkSpeed, 0.7, 2.1)
       this.mixer.update(frameSeconds)
       this.model.position.y = 0
       this.model.rotation.x = -Math.min(0.12, speed / 70)
