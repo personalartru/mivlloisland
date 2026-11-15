@@ -26,7 +26,8 @@ const media = [
   ].map(name => [`assets/models/${name}`, `models/${name}`]),
   ...[
     'magic/spell.wav', 'ui/ready-click-01.wav', 'magic/chimes.wav', 'magic/success.wav',
-  ].map(name => [`assets/audio/${name}`, `audio/${name}`]),
+    'clockwork-city.mp3', 'clockwork-steam.mp3', 'clockwork-plate.mp3', 'clockwork-motor.mp3',
+  ].map(name => [`${name.startsWith('clockwork-') ? 'public/audio' : 'assets/audio'}/${name}`, `audio/${name}`]),
 ]
 
 for (const [source, destination] of media) {
