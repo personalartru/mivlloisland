@@ -826,3 +826,13 @@ body.has-touch .inventory { max-width: 46vw; }
 #ui[data-level="underwater"] .icon-btn { background:#0b4560; color:#e8ffff; border-color:#04243c; box-shadow:0 4px 0 #04243c; }
 #ui[data-level="underwater"] .prompt { background:#04243c; border-color:#81e7ff; }
 @media (min-width: 960px) { .level-picker { grid-template-columns: repeat(4, 1fr); } }
+
+/* Keep the complete logo visible when four level cards are shown in a short desktop window. */
+@media (min-width: 721px) and (max-height: 800px) {
+  .title { align-items: center; padding-top: 2vh; padding-bottom: 2vh; }
+  .logo-text { font-size: clamp(54px, 7vw, 88px); line-height: .9; }
+  .logo-small { font-size: clamp(15px, 1.8vw, 21px); margin-top: 7px; padding-top: 3px; padding-bottom: 3px; }
+  .tagline { margin-top: 14px; margin-bottom: 14px; }
+  .name-field { margin-bottom: 14px; }
+  .level-picker { margin-bottom: 11px; }
+}
