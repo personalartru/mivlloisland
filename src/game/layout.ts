@@ -3,6 +3,8 @@ import type { LevelId } from './levels'
 import type { ItemKind, QuestId } from './content'
 import type { ClockworkLayout } from './clockwork'
 
+export type SummitLayout = { platforms: Array<{ center: THREE.Vector3; size: THREE.Vector3 }>; summit: THREE.Vector3 }
+
 export type UnderwaterLayout = {
   resonators: THREE.Vector3[]
   resonatorRadius: number
@@ -21,6 +23,7 @@ export type LevelLayout = {
   seed: number
   clockwork?: ClockworkLayout
   underwater?: UnderwaterLayout
+  summit?: SummitLayout
 }
 const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z)
 
@@ -50,4 +53,22 @@ export const UNDERWATER_LAYOUT: LevelLayout = {
   water: { center: v(0, 0, 0), radius: 0 }, landmark: v(0,0,23), building: v(-17,0,4), seed: 20261118,
   underwater: { resonators: [v(0,0,8),v(10,0,0),v(0,0,-10),v(-10,0,0),v(0,0,17)], resonatorRadius: 1.35, bubbleLanes: [{center:v(5,0,2),radius:2.2},{center:v(-5,0,2),radius:2.2},{center:v(0,0,-4),radius:2.2}] },
 }
-export const LAYOUTS: Record<LevelId, LevelLayout> = { island: ISLAND_LAYOUT, planet: PLANET_LAYOUT, clockwork: CLOCKWORK_LAYOUT, underwater: UNDERWATER_LAYOUT }
+
+export const SUMMIT_LAYOUT: LevelLayout = {
+  radius: 34, playableRadius: 32, spawn: v(0, 1, 0),
+  npcSpots: { sage: v(-10, 3.5, 1), yeti: v(10, 7, 0), eagle: v(-9, 10.5, 1), moon: v(9, 14, 0), summit: v(0, 17.5, 0) },
+  itemSpots: {
+    rune: [v(-6,.9,4),v(-12,4.45,0),v(-8,10.95,0),v(2,14.45,2),v(-2,18.1,0)],
+    feather: [v(6,.9,4),v(12,7.95,0),v(7,11.45,-1),v(-6,14.95,1)],
+    ore: [v(-8,.9,-5),v(8,4.45,-3),v(-6,7.95,2),v(6,10.95,2)],
+    lantern: [v(0,.9,-7),v(-9,4.45,2),v(9,7.95,2),v(0,14.95,-2)],
+    crown: [v(-2,18.05,2),v(2,18.05,0),v(0,18.05,-2)],
+  },
+  water: { center: v(0,0,0), radius: 0 }, landmark: v(0,17.5,0), building: v(0,0,0), seed: 20261119,
+  summit: { platforms: [
+    { center:v(0,0,0), size:v(15,1,15) }, { center:v(0,3.5,0), size:v(10,0.8,8) }, { center:v(0,7,0), size:v(9,0.8,7) },
+    { center:v(0,10.5,0), size:v(8,0.8,6) }, { center:v(0,14,0), size:v(7,0.8,6) }, { center:v(0,17.5,0), size:v(6,1,5) },
+  ], summit:v(0,17.5,0) },
+}
+
+export const LAYOUTS: Record<LevelId, LevelLayout> = { island: ISLAND_LAYOUT, planet: PLANET_LAYOUT, clockwork: CLOCKWORK_LAYOUT, underwater: UNDERWATER_LAYOUT, summit: SUMMIT_LAYOUT }

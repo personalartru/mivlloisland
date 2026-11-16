@@ -4,6 +4,7 @@ import { instantiate, type ModelPack } from './models'
 import { cosmicItem, cosmicNpcVisual } from './cosmic'
 import { clockworkItem, clockworkNpcVisual } from './clockwork-visuals'
 import { underwaterItem, underwaterNpcVisual } from './underwater-visuals'
+import { summitItem, summitNpcVisual } from './final-visuals'
 import { itemDef, type IslandItemKind, type IslandQuestId, type ItemKind, type LevelContent, type QuestId } from './content'
 import type { NpcVisual } from './visual-types'
 
@@ -20,7 +21,7 @@ export function npcVisuals(content: LevelContent, models: ModelPack): Partial<Re
   for (const quest of content.quests) {
     const visual = content.id === 'island'
       ? islandNpc(models, quest.id as IslandQuestId)
-      : content.id === 'planet' ? cosmicNpcVisual(quest.id) : content.id === 'clockwork' ? clockworkNpcVisual(quest.id) : underwaterNpcVisual(quest.id)
+      : content.id === 'planet' ? cosmicNpcVisual(quest.id) : content.id === 'clockwork' ? clockworkNpcVisual(quest.id) : content.id === 'underwater' ? underwaterNpcVisual(quest.id) : summitNpcVisual(quest.id)
     if (visual) visuals[quest.id] = visual
   }
   return visuals
@@ -33,6 +34,7 @@ export function itemFactory(content: LevelContent, models: ModelPack): (kind: It
   }
   if (content.id === 'clockwork') return kind => clockworkItem(kind)
   if (content.id === 'underwater') return kind => underwaterItem(kind)
+  if (content.id === 'summit') return kind => summitItem(kind)
   return kind => cosmicItem(kind) ?? new THREE.Mesh(new THREE.OctahedronGeometry(0.25, 0), new THREE.MeshStandardMaterial({ color: '#ffffff' }))
 }
 

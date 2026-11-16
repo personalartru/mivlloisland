@@ -8,7 +8,7 @@ export type Quality = 'low' | 'medium' | 'high'
 export type ScoreEntry = { name: string; score: number; seconds: number; at: number }
 
 export type SaveData = {
-  version: 4
+  version: 5
   locale: Locale
   musicVolume: number
   sfxVolume: number
@@ -21,6 +21,7 @@ export type SaveData = {
   planetUnlocked: boolean
   clockworkUnlocked: boolean
   underwaterUnlocked: boolean
+  summitUnlocked: boolean
   playerName: string
   leaderboard: ScoreEntry[]
 }
@@ -30,7 +31,7 @@ export const LEADERBOARD_SIZE = 10
 
 export function defaultSave(): SaveData {
   return {
-    version: 4,
+    version: 5,
     locale: 'ru',
     musicVolume: 0.7,
     sfxVolume: 0.8,
@@ -43,6 +44,7 @@ export function defaultSave(): SaveData {
     planetUnlocked: false,
     clockworkUnlocked: false,
     underwaterUnlocked: false,
+    summitUnlocked: false,
     playerName: 'Дружок',
     leaderboard: [],
   }
@@ -62,10 +64,10 @@ export function parseSave(raw: string | null): SaveData {
   } catch {
     return base
   }
-  if (data.version !== 1 && data.version !== 2 && data.version !== 3 && data.version !== 4) return base
+  if (data.version !== 1 && data.version !== 2 && data.version !== 3 && data.version !== 4 && data.version !== 5) return base
   const board = Array.isArray(data.leaderboard) ? data.leaderboard : []
   return {
-    version: 4,
+    version: 5,
     locale: 'ru',
     musicVolume: clamp01(data.musicVolume, base.musicVolume),
     sfxVolume: clamp01(data.sfxVolume, base.sfxVolume),
@@ -77,7 +79,8 @@ export function parseSave(raw: string | null): SaveData {
     tutorialDone: data.tutorialDone === true,
     planetUnlocked: (data.version === 2 || data.version === 3) && data.planetUnlocked === true,
     clockworkUnlocked: (data.version === 3 || data.version === 4) && data.clockworkUnlocked === true,
-    underwaterUnlocked: data.version === 4 && data.underwaterUnlocked === true,
+    underwaterUnlocked: (data.version === 4 || data.version === 5) && data.underwaterUnlocked === true,
+    summitUnlocked: data.version === 5 && data.summitUnlocked === true,
     playerName: typeof data.playerName === 'string' && data.playerName.trim() ? data.playerName.trim().slice(0, 16) : base.playerName,
     leaderboard: board
       .filter((e): e is ScoreEntry => !!e && typeof e === 'object' && typeof (e as ScoreEntry).name === 'string' && Number.isFinite((e as ScoreEntry).score))

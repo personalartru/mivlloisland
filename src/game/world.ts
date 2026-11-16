@@ -3,12 +3,13 @@ import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { Physics } from '../engine/physics'
 import { instantiate, type PropKey } from './models'
 import { haloTexture } from './textures'
-import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, UNDERWATER_LAYOUT, type LevelLayout } from './layout'
+import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, UNDERWATER_LAYOUT, SUMMIT_LAYOUT, type LevelLayout } from './layout'
 import type { LevelId } from './levels'
 import { flat, jitter, rng, signTexture } from './world/shared'
 import { PlanetWorld } from './world/planet'
 import { ClockworkWorld } from './world/clockwork'
 import { UnderwaterWorld } from './world/underwater'
+import { SummitWorld } from './world/final'
 
 /**
  * The single cozy island of Чудо-остров. The ground is flat so very young players can never get
@@ -667,5 +668,7 @@ export function createWorld(physics: Physics, shadowMapSize: number, props: Reco
       ? new ClockworkWorld(physics, shadowMapSize, CLOCKWORK_LAYOUT)
       : level === 'underwater'
         ? new UnderwaterWorld(physics, shadowMapSize, UNDERWATER_LAYOUT)
+        : level === 'summit'
+          ? new SummitWorld(physics, shadowMapSize, SUMMIT_LAYOUT)
         : new IslandWorld(physics, shadowMapSize, props, ISLAND_LAYOUT)
 }

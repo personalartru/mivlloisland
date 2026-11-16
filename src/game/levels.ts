@@ -1,6 +1,6 @@
-export type LevelId = 'island' | 'planet' | 'clockwork' | 'underwater'
+export type LevelId = 'island' | 'planet' | 'clockwork' | 'underwater' | 'summit'
 
-export const LEVEL_ORDER: LevelId[] = ['island', 'planet', 'clockwork', 'underwater']
+export const LEVEL_ORDER: LevelId[] = ['island', 'planet', 'clockwork', 'underwater', 'summit']
 
 export function nextLevel(level: LevelId): LevelId | null {
   const index = LEVEL_ORDER.indexOf(level)

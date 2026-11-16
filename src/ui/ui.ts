@@ -46,6 +46,11 @@ const ICON: Record<ItemKind, string> = {
   coral: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V10M12 14 7 9M12 16l6-6M8 11V6M18 11V5" stroke="#ff887b" stroke-width="3" stroke-linecap="round"/></svg>',
   shell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17c0-7 4-11 9-11s9 4 9 11Z" fill="#d9b3ff" stroke="#f0ddff" stroke-width="1.5"/><path d="M12 7v10M7 9l3 8M17 9l-3 8" stroke="#fff" stroke-width="1" opacity=".8"/></svg>',
   kelp: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 22c4-5-2-8 2-13 2-3-1-5 0-7M15 22c-3-5 3-8-1-13-2-3 1-5 0-7" fill="none" stroke="#67d6a0" stroke-width="3" stroke-linecap="round"/></svg>',
+  rune: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 20 8l-3 12H7L4 8Z" fill="#d59cff" stroke="#f1d8ff"/><path d="M8 12h8M10 8h4" stroke="#fff" stroke-width="1.5"/></svg>',
+  feather: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3C9 4 5 9 5 16c0 2 1 4 1 4s2-1 4-1c7 0 9-6 9-16Z" fill="#8eeaff"/><path d="M5 21 16 8" stroke="#fff" stroke-width="1.5"/></svg>',
+  ore: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 8 6-3 12H7L4 8Z" fill="#ff9b73"/></svg>',
+  lantern: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="#ffd65c"/><path d="M8 4h8M8 20h8" stroke="#fff0a3" stroke-width="2"/></svg>',
+  crown: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 4 4 5-7 5 7 4-4-2 13H5Z" fill="#ffe77a" stroke="#fff8c9"/></svg>',
   bubble: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="13" r="6" fill="#81e7ff" fill-opacity=".55" stroke="#d5f9ff" stroke-width="1.5"/><circle cx="17" cy="6" r="3" fill="#81e7ff" fill-opacity=".55" stroke="#d5f9ff" stroke-width="1.2"/></svg>',
 }
 
@@ -376,10 +381,11 @@ export class Ui {
     this.q('.results-newbest').textContent = this.i18n.t('results.newBest')
     const next = otherLevel(journey.level)
     const nextButton = this.q<HTMLButtonElement>('[data-action="switch-level"]')
-    const unlocked = next === 'planet' ? this.save.data.planetUnlocked : next === 'clockwork' ? this.save.data.clockworkUnlocked : next === 'underwater' ? this.save.data.underwaterUnlocked : true
-    nextButton.hidden = !unlocked
+    const unlocked = next === 'planet' ? this.save.data.planetUnlocked : next === 'clockwork' ? this.save.data.clockworkUnlocked : next === 'underwater' ? this.save.data.underwaterUnlocked : next === 'summit' ? this.save.data.summitUnlocked : true
+    nextButton.hidden = !unlocked || journey.level === 'summit'
+    this.q<HTMLElement>('.results').classList.toggle('is-final', journey.level === 'summit')
     nextButton.dataset.level = next
-    nextButton.textContent = next === 'planet' ? this.i18n.t('results.nextLevel') : next === 'clockwork' ? this.i18n.t('results.nextClockwork') : next === 'underwater' ? this.i18n.t('results.nextUnderwater') : this.i18n.t('results.backToIsland')
+    nextButton.textContent = next === 'planet' ? this.i18n.t('results.nextLevel') : next === 'clockwork' ? this.i18n.t('results.nextClockwork') : next === 'underwater' ? this.i18n.t('results.nextUnderwater') : next === 'summit' ? this.i18n.t('results.nextSummit') : this.i18n.t('results.backToIsland')
     this.setScreen('results')
     this.setOnlineStatus('pending')
   }
@@ -432,7 +438,7 @@ export class Ui {
   }
 
   private refreshLevelButtons(): void {
-    for (const [level, unlocked] of [['planet', this.save.data.planetUnlocked], ['clockwork', this.save.data.clockworkUnlocked], ['underwater', this.save.data.underwaterUnlocked] ] as const) {
+    for (const [level, unlocked] of [['planet', this.save.data.planetUnlocked], ['clockwork', this.save.data.clockworkUnlocked], ['underwater', this.save.data.underwaterUnlocked], ['summit', this.save.data.summitUnlocked] ] as const) {
       const button = this.q<HTMLButtonElement>(`[data-action="play-${level}"]`)
       button.disabled = !unlocked
       button.classList.toggle('is-locked', !unlocked)
@@ -569,6 +575,7 @@ export class Ui {
       else if (action === 'play-planet') this.actions.play('planet')
       else if (action === 'play-clockwork') this.actions.play('clockwork')
       else if (action === 'play-underwater') this.actions.play('underwater')
+      else if (action === 'play-summit') this.actions.play('summit')
       else if (action === 'switch-level') this.actions.play((el.dataset.level as LevelId) ?? otherLevel(this.level))
       else if (action === 'pause') this.actions.pause()
       else if (action === 'resume') this.actions.resume()
@@ -672,6 +679,7 @@ function template(): string {
           <span class="level-copy"><b data-i18n="level.clockwork.title"></b><small data-i18n="level.clockwork.subtitle"></small></span>
           <span class="level-lock" data-i18n="level.clockwork.locked"></span>
         </button>
+        <button class="level-card summit" data-action="play-summit" data-nav><span class="level-art summit" aria-hidden="true"><i class="level-mountain"></i><i class="level-spark"></i></span><span class="level-copy"><b data-i18n="level.summit.title"></b><small data-i18n="level.summit.subtitle"></small></span><span class="level-lock" data-i18n="level.summit.locked"></span></button>
         <button class="level-card underwater" data-action="play-underwater" data-nav>
           <span class="level-art underwater" aria-hidden="true"><i class="level-coral"></i><i class="level-bubble"></i><i class="level-wave"></i></span>
           <span class="level-copy"><b data-i18n="level.underwater.title"></b><small data-i18n="level.underwater.subtitle"></small></span>
@@ -784,9 +792,9 @@ function template(): string {
 
   <section class="modal results" data-screen="results">
     <div class="results-card">
-      <div class="results-stars"></div>
+      <div class="final-fireworks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="results-stars"></div>
       <h1 class="results-title"></h1>
-      <p class="results-thanks"></p>
+      <p class="results-thanks"></p><h2 class="final-congrats" data-i18n="final.congrats"></h2><p class="final-sub" data-i18n="final.sub"></p>
       <p class="results-newbest" hidden></p>
       <div class="results-stats"></div>
       <p class="online-status"></p>

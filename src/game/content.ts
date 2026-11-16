@@ -1,5 +1,5 @@
 import type { LevelId } from './levels'
-import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, UNDERWATER_LAYOUT, type LevelLayout } from './layout'
+import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, UNDERWATER_LAYOUT, SUMMIT_LAYOUT, type LevelLayout } from './layout'
 
 /** Every collectible kind in the whole game. Each level uses its own subset. */
 export type ItemKind =
@@ -7,6 +7,7 @@ export type ItemKind =
   | 'stardust' | 'seed' | 'nebula' | 'shard' | 'spark' | 'lunar'
   | 'cog' | 'bolt' | 'spring' | 'valve' | 'gear'
   | 'pearl' | 'coral' | 'shell' | 'kelp' | 'bubble'
+  | 'rune' | 'feather' | 'ore' | 'lantern' | 'crown'
 
 /** Every friendly character with a task. Each level uses its own subset. */
 export type QuestId =
@@ -14,6 +15,7 @@ export type QuestId =
   | 'lumo' | 'bip' | 'whale' | 'keeper' | 'comet' | 'lunatic'
   | 'geara' | 'piston' | 'spring' | 'copper' | 'tick'
   | 'coralina' | 'octo' | 'splash' | 'pearl' | 'fin'
+  | 'sage' | 'yeti' | 'eagle' | 'moon' | 'summit'
 
 export type IslandItemKind = Extract<ItemKind, 'berry' | 'crystal' | 'mushroom' | 'star'>
 export type IslandQuestId = Extract<QuestId, 'grandma' | 'fairy' | 'mushroom' | 'cat'>
@@ -148,11 +150,26 @@ export const UNDERWATER_CONTENT: LevelContent = {
   totalItems: 17, noTasksKey: 'hud.noTasks.underwater', collectHintKey: 'hint.collect.underwater', resultsWonKey: 'results.underwater.won', resultsThanksKey: 'results.underwater.thanks',
 }
 
+
+export const SUMMIT_CONTENT: LevelContent = {
+  id: 'summit', layout: SUMMIT_LAYOUT, itemKinds: ['rune', 'feather', 'ore', 'lantern', 'crown'],
+  items: {
+    rune: { nameKey: 'item.rune', color: '#d59cff', glow: '#f1d8ff', height: .72, halo: 1.25 },
+    feather: { nameKey: 'item.feather', color: '#8eeaff', glow: '#d7fbff', height: .85, halo: 1.15 },
+    ore: { nameKey: 'item.ore', color: '#ff9b73', glow: '#ffd0a8', height: .68, halo: 1.15 },
+    lantern: { nameKey: 'item.lantern', color: '#ffd65c', glow: '#fff0a3', height: .8, halo: 1.25 },
+    crown: { nameKey: 'item.crown', color: '#ffe77a', glow: '#fff8c9', height: .92, halo: 1.35 },
+  },
+  quests: [quest('sage','rune',5,'#d59cff'), quest('yeti','feather',4,'#8eeaff'), quest('eagle','ore',4,'#ff9b73'), quest('moon','lantern',4,'#ffd65c'), quest('summit','crown',3,'#ffe77a')],
+  totalItems: 20, noTasksKey: 'hud.noTasks.summit', collectHintKey: 'hint.collect.summit', resultsWonKey: 'results.summit.won', resultsThanksKey: 'results.summit.thanks',
+}
+
 export const CONTENT: Record<LevelId, LevelContent> = {
   island: ISLAND_CONTENT,
   planet: PLANET_CONTENT,
   clockwork: CLOCKWORK_CONTENT,
   underwater: UNDERWATER_CONTENT,
+  summit: SUMMIT_CONTENT,
 }
 
 export function contentFor(level: LevelId): LevelContent {

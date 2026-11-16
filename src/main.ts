@@ -116,6 +116,7 @@ async function boot(): Promise<void> {
     if (level === 'planet' && !save.data.planetUnlocked) return
     if (level === 'clockwork' && !save.data.clockworkUnlocked) return
     if (level === 'underwater' && !save.data.underwaterUnlocked) return
+    if (level === 'summit' && !save.data.summitUnlocked) return
     if (game.level !== level) {
       game = new Game(renderer, input, audio, i18n, hooks, models, level)
       game.reducedMotion = save.data.reducedMotion
@@ -175,6 +176,8 @@ async function boot(): Promise<void> {
       if (level === 'island' && !save.data.planetUnlocked) save.update({ planetUnlocked: true })
       if (level === 'planet' && !save.data.clockworkUnlocked) save.update({ clockworkUnlocked: true })
       if (level === 'clockwork' && !save.data.underwaterUnlocked) save.update({ underwaterUnlocked: true })
+      if (level === 'underwater' && !save.data.summitUnlocked) save.update({ summitUnlocked: true })
+      if (level === 'summit') audio.play('win')
       onEnd(journey)
     },
   }

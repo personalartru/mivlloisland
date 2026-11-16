@@ -21,16 +21,18 @@ describe('save', () => {
 
   it('migrates old saves and persists both later-level unlocks', () => {
     const old = parseSave(JSON.stringify({ version: 1, tutorialDone: true }))
-    expect(old.version).toBe(4)
+    expect(old.version).toBe(5)
     expect(old.planetUnlocked).toBe(false)
     expect(old.clockworkUnlocked).toBe(false)
     expect(old.underwaterUnlocked).toBe(false)
+    expect(old.summitUnlocked).toBe(false)
     const fresh = parseSave(JSON.stringify({ version: 2, planetUnlocked: true }))
     expect(fresh.planetUnlocked).toBe(true)
     expect(fresh.clockworkUnlocked).toBe(false)
     expect(fresh.underwaterUnlocked).toBe(false)
     expect(parseSave(JSON.stringify({ version: 3, clockworkUnlocked: true })).clockworkUnlocked).toBe(true)
     expect(parseSave(JSON.stringify({ version: 4, underwaterUnlocked: true })).underwaterUnlocked).toBe(true)
+    expect(parseSave(JSON.stringify({ version: 5, summitUnlocked: true })).summitUnlocked).toBe(true)
   })
 
   it('keeps a bounded, ordered leaderboard', () => {

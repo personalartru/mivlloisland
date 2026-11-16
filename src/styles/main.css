@@ -836,3 +836,19 @@ body.has-touch .inventory { max-width: 46vw; }
   .name-field { margin-bottom: 14px; }
   .level-picker { margin-bottom: 11px; }
 }
+
+
+/* Final summit level: aurora card and celebratory completion screen. */
+.level-card.summit .level-art { background: linear-gradient(160deg, #17143d, #604184 58%, #f08ab4); overflow: hidden; }
+.level-mountain { position:absolute; left:12%; bottom:10%; width:76%; height:65%; background:linear-gradient(135deg,#b58de2 0 42%,#443276 43% 100%); clip-path:polygon(0 100%,27% 34%,43% 57%,66% 0,100% 100%); filter:drop-shadow(0 0 8px #a7f6f0); }
+.level-spark { position:absolute; width:9px; height:9px; border-radius:50%; right:20%; top:18%; background:#fff5a8; box-shadow:0 0 10px 4px #ffe77a; }
+.results.is-final .results-card { background: radial-gradient(circle at 50% 8%, rgba(255,231,122,.22), transparent 34%), linear-gradient(155deg,#17143d,#40316d 56%,#8b4a83); border-color:#ffe77a; box-shadow:0 0 0 4px rgba(255,231,122,.14),0 24px 80px rgba(20,8,62,.5); }
+.final-congrats, .final-sub, .final-fireworks { display:none; }
+.results.is-final .final-congrats { display:block; margin:10px 0 4px; color:#fff2a6; font-size:clamp(1.35rem,3vw,2.25rem); text-shadow:0 0 18px rgba(255,220,100,.55); }
+.results.is-final .final-sub { display:block; margin:0 auto 12px; color:#f6eaff; max-width:34rem; }
+.final-fireworks { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.results.is-final .final-fireworks { display:block; }
+.final-fireworks i { position:absolute; width:7px; height:7px; border-radius:50%; left:50%; top:30%; background:#ffe77a; box-shadow:0 0 12px 4px currentColor; animation:final-burst 2.4s ease-out infinite; }
+.final-fireworks i:nth-child(2){color:#8eeaff;animation-delay:.35s;left:22%;top:38%}.final-fireworks i:nth-child(3){color:#ff9b73;animation-delay:.7s;left:78%;top:33%}.final-fireworks i:nth-child(4){color:#d59cff;animation-delay:1.05s;left:36%;top:16%}.final-fireworks i:nth-child(5){color:#7ce9e1;animation-delay:1.4s;left:66%;top:19%}
+@keyframes final-burst { 0%{transform:scale(.3);opacity:0} 18%{opacity:1} 100%{transform:scale(12);opacity:0} }
+#ui[data-level="summit"] .hud { background:linear-gradient(180deg,rgba(22,18,60,.35),transparent 34%); }
