@@ -19,13 +19,16 @@ export class SummitWorld implements WorldView {
     this.scene.add(new THREE.HemisphereLight('#b9d8ff', '#241b4f', 1.25))
     this.sun = new THREE.DirectionalLight('#ffe0ba', 2.4); this.sun.castShadow = true; this.sun.shadow.mapSize.set(shadowMapSize, shadowMapSize)
     this.scene.add(this.sun, this.sun.target)
-    for (const platform of summit.platforms) {
+    const terraceColors = ['#6650a8', '#3f9fbe', '#48b58f', '#e0a34b', '#d86882', '#a85ac4']
+    for (const [index, platform] of summit.platforms.entries()) {
       const [x, y, z] = [platform.size.x, platform.size.y, platform.size.z]
-      const top = new THREE.Mesh(new THREE.BoxGeometry(x * 2, y, z * 2), flat(new THREE.Color(y > .9 ? '#483a82' : '#62529d')))
+      const color = terraceColors[index % terraceColors.length]
+      const top = new THREE.Mesh(new THREE.BoxGeometry(x * 2, y, z * 2), flat(new THREE.Color(color)))
       top.position.copy(platform.center); top.castShadow = true; top.receiveShadow = true; this.scene.add(top)
       this.physics.addStaticBox(platform.center, new THREE.Vector3(x, y / 2, z))
-      const rim = new THREE.Mesh(new THREE.BoxGeometry(x * 2.05, .12, z * 2.05), new THREE.MeshStandardMaterial({ color: '#7ce9e1', emissive: '#39b8bd', emissiveIntensity: .5 }))
-      rim.position.set(platform.center.x, platform.center.y + y / 2 + .08, platform.center.z); this.scene.add(rim)
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(x * 1.99, .045, z * 1.99), new THREE.MeshStandardMaterial({ color, roughness: .7, emissive: color, emissiveIntensity: .12 }))
+      cap.position.set(platform.center.x, platform.center.y + y / 2 + .025, platform.center.z)
+      cap.receiveShadow = true; this.scene.add(cap)
     }
     this.addPillars()
     this.addSkyRibbons()

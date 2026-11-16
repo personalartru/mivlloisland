@@ -55,7 +55,9 @@ export class Npcs {
         phase: i * 1.4, idleYaw, bubbleKey: '',
         bob: visual.bob ?? 0.035, hover: visual.hover ?? 0, tick: visual.tick,
       })
-      physics.addStaticCylinder(new THREE.Vector3(spot.x, 0.7, spot.z), visual.collider ?? 0.45, 1.4)
+      // Keep the invisible NPC obstacle on the same terrace as the visual. Summit NPCs
+      // live above the base level; using a fixed y=0.7 made their colliders intersect floors.
+      physics.addStaticCylinder(new THREE.Vector3(spot.x, spot.y + 0.7, spot.z), visual.collider ?? 0.45, 1.4)
     }
   }
 
