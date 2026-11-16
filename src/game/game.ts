@@ -180,7 +180,7 @@ export class Game {
       const events: PlayerEvent[] = []
       this.world.updateMechanics?.(this.player.position)
       for (const mechanic of this.world.consumeMechanicEvents?.() ?? []) {
-        if (mechanic === 'plate') this.audio.play('clockworkPlate')
+        if (mechanic === 'plate') this.audio.play('clockworkMechanism')
         else if (mechanic === 'motor') this.audio.play('clockworkMotor')
         else this.audio.play(mechanic === 'resonator' ? 'quest' : 'win')
       }
@@ -200,7 +200,7 @@ export class Game {
       for (const got of this.items.collect(pos, CONFIG.quest.pickupRadius)) {
         this.journey = pickup(this.journey, got.kind, this.content).state
         const def = itemDef(this.content, got.kind)
-        this.audio.play('pickup')
+        this.audio.play(this.level === 'clockwork' ? 'clockworkGear' : 'pickup')
         this.fx.burst(got.at, def.color, 24, 6)
         this.hooks.popup(`+1 ${this.i18n.t(def.nameKey)}`, this.project(got.at.clone().setY(got.at.y + 0.6)), 'item')
         if (this.tutorial === 'collect') {
