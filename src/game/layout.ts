@@ -56,19 +56,19 @@ export const UNDERWATER_LAYOUT: LevelLayout = {
 
 export const SUMMIT_LAYOUT: LevelLayout = {
   radius: 34, playableRadius: 32, spawn: v(0, 1, 0),
-  npcSpots: { sage: v(-10, 3.5, 1), yeti: v(10, 7, 0), eagle: v(-9, 10.5, 1), moon: v(9, 14, 0), summit: v(0, 17.5, 0) },
+  npcSpots: { sage: v(-10, 1.15, 1), yeti: v(10, 1.95, 0), eagle: v(-8, 2.55, 3), moon: v(8, 3.15, 2), summit: v(0, 3.75, 0) },
   itemSpots: {
-    rune: [v(-6,.9,4),v(-12,4.45,0),v(-8,10.95,0),v(2,14.45,2),v(-2,18.1,0)],
-    feather: [v(6,.9,4),v(12,7.95,0),v(7,11.45,-1),v(-6,14.95,1)],
-    ore: [v(-8,.9,-5),v(8,4.45,-3),v(-6,7.95,2),v(6,10.95,2)],
-    lantern: [v(0,.9,-7),v(-9,4.45,2),v(9,7.95,2),v(0,14.95,-2)],
-    crown: [v(-2,18.05,2),v(2,18.05,0),v(0,18.05,-2)],
+    rune: [v(-6,.95,4),v(-12,1.35,0),v(-8,2.15,3),v(2,2.75,2),v(-2,3.95,0)],
+    feather: [v(6,.95,4),v(12,1.95,0),v(7,2.75,-1),v(-6,3.35,1)],
+    ore: [v(-8,.95,-5),v(8,1.55,-3),v(-6,2.35,2),v(6,2.75,2)],
+    lantern: [v(0,.95,-7),v(-9,1.55,2),v(9,2.35,2),v(0,3.35,-2)],
+    crown: [v(-2,3.95,2),v(2,3.95,0),v(0,3.95,-2)],
   },
-  water: { center: v(0,0,0), radius: 0 }, landmark: v(0,17.5,0), building: v(0,0,0), seed: 20261119,
+  water: { center: v(0,0,0), radius: 0 }, landmark: v(0,3.75,0), building: v(0,0,0), seed: 20261119,
   summit: { platforms: [
-    { center:v(0,0,0), size:v(15,1,15) }, { center:v(0,3.5,0), size:v(10,0.8,8) }, { center:v(0,7,0), size:v(9,0.8,7) },
-    { center:v(0,10.5,0), size:v(8,0.8,6) }, { center:v(0,14,0), size:v(7,0.8,6) }, { center:v(0,17.5,0), size:v(6,1,5) },
-  ], summit:v(0,17.5,0) },
+    { center:v(0,0,0), size:v(30,1,30) }, { center:v(-10,.65,1), size:v(6,.8,5) }, { center:v(10,1.05,0), size:v(6,1.6,5) },
+    { center:v(-8,1.55,3), size:v(5,1.6,5) }, { center:v(8,2.05,2), size:v(5,1.6,5) }, { center:v(0,2.65,0), size:v(6,1.6,5) },
+  ], summit:v(0,3.45,0) },
 }
 
 export const LAYOUTS: Record<LevelId, LevelLayout> = { island: ISLAND_LAYOUT, planet: PLANET_LAYOUT, clockwork: CLOCKWORK_LAYOUT, underwater: UNDERWATER_LAYOUT, summit: SUMMIT_LAYOUT }

@@ -17,7 +17,8 @@ const AUDIO_URLS: Partial<Record<Sfx, string>> = import.meta.env.DEV ? {
 }
 
 const DIALOG_LINES: DialogVoiceLine[] = [
-  'grandma-intro', 'grandma-progress', 'grandma-ready', 'grandma-thanks', 'grandma-done', 'fairy-intro', 'fairy-progress', 'fairy-ready', 'fairy-thanks', 'fairy-done', 'mushroom-intro', 'mushroom-progress', 'mushroom-ready', 'mushroom-thanks', 'mushroom-done', 'cat-intro', 'cat-progress', 'cat-ready', 'cat-thanks', 'cat-done', 'lumo-intro', 'whale-intro', 'keeper-intro', 'comet-intro', 'bip-intro', 'lunatic-intro', 'geara-intro', 'piston-intro', 'spring-intro', 'copper-intro', 'tick-intro', 'coralina-intro', 'octo-intro', 'splash-intro', 'pearl-intro', 'fin-intro', 'sage-intro', 'yeti-intro', 'eagle-intro', 'moon-intro', 'summit-intro',
+  'grandma-intro', 'grandma-progress', 'grandma-ready', 'grandma-thanks', 'grandma-done', 'fairy-intro', 'fairy-progress', 'fairy-ready', 'fairy-thanks', 'fairy-done', 'mushroom-intro', 'mushroom-progress', 'mushroom-ready', 'mushroom-thanks', 'mushroom-done', 'cat-intro', 'cat-progress', 'cat-ready', 'cat-thanks', 'cat-done',
+  ...(['lumo','bip','whale','keeper','comet','lunatic','geara','piston','spring','copper','tick','coralina','octo','splash','pearl','fin','sage','yeti','eagle','moon','summit'] as const).flatMap(id => ['intro','progress','ready','thanks','done'].map(line => `${id}-${line}` as DialogVoiceLine)),
 ]
 const dialogUrl = (line: DialogVoiceLine) => `${import.meta.env.BASE_URL}audio/dialogs/${line}.wav`
 const CATALOG: Partial<Record<Sfx, string>> = { ...AUDIO_URLS, clockworkSteam: baseAudio('clockwork-steam.mp3'), clockworkPlate: baseAudio('clockwork-plate.mp3'), clockworkMotor: baseAudio('clockwork-motor.mp3'), clockworkGear: baseAudio('clockwork-gear.mp3'), clockworkMechanism: baseAudio('clockwork-mechanism.mp3') }

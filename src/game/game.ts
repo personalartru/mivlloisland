@@ -408,7 +408,9 @@ export class Game {
       status,
       action,
       accent: quest.accent,
-      voiceLine: this.level === 'island' ? `${id}-${line}` : line === 'intro' ? `${id}-intro` : undefined,
+      // Every state is voiced on every level. Progress clips use a generic “several remain”
+      // phrase because the visible counter can change dynamically during a quest.
+      voiceLine: `${id}-${line}`,
     }
   }
 
