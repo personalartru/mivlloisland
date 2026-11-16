@@ -25,7 +25,9 @@ export class SummitWorld implements WorldView {
       const color = terraceColors[index % terraceColors.length]
       const top = new THREE.Mesh(new THREE.BoxGeometry(x * 2, y, z * 2), flat(new THREE.Color(color)))
       top.position.copy(platform.center); top.castShadow = true; top.receiveShadow = true; this.scene.add(top)
-      this.physics.addStaticBox(platform.center, new THREE.Vector3(x, y / 2, z))
+      // Only the broad, flat base is physical. The colored upper terraces are visual
+      // jump markers; solid overlapping boxes were able to trap the player capsule.
+      if (index === 0) this.physics.addStaticBox(platform.center, new THREE.Vector3(x, y / 2, z))
       const cap = new THREE.Mesh(new THREE.BoxGeometry(x * 1.99, .045, z * 1.99), new THREE.MeshStandardMaterial({ color, roughness: .7, emissive: color, emissiveIntensity: .12 }))
       cap.position.set(platform.center.x, platform.center.y + y / 2 + .025, platform.center.z)
       cap.receiveShadow = true; this.scene.add(cap)

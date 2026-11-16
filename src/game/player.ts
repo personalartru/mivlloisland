@@ -2,7 +2,6 @@ import * as THREE from 'three'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { RAPIER, type Physics } from '../engine/physics'
 import { CONFIG } from './config'
-import { instantiate } from './models'
 import { tuning } from './tuning'
 
 export type PlayerIntent = { moveX: number; moveY: number; sprint: boolean; jumpPressed: boolean; jumpHeld: boolean }
@@ -192,25 +191,9 @@ export class Player {
   }
 
   private useModel(gltf: GLTF): void {
-    const visual = instantiate(gltf, { height: 1.55, skeleton: true })
-    // glTF faces +Z while the controller treats local -Z as forward.
-    visual.rotation.y = Math.PI
-    this.model.add(visual)
-    this.placeholder.visible = false
-    this.mixer = new THREE.AnimationMixer(visual)
-    const clips = gltf.animations.map(clip => stripHorizontalRootMotion(clip.clone()))
-    const idle = clips.find(clip => /idle|stand|relax/i.test(clip.name)) ?? clips[0]
-    const walk = clips.find(clip => /walk|run/i.test(clip.name)) ?? clips[1]
-    if (idle) {
-      this.idleAction = this.mixer.clipAction(idle)
-      this.idleAction.play()
-      this.idleAction.setEffectiveWeight(1)
-    }
-    if (walk) {
-      this.walkAction = this.mixer.clipAction(walk)
-      this.walkAction.play()
-      this.walkAction.setEffectiveWeight(0)
-    }
+    // The bundled model reads as a seal/ball in close-up. Keep the gameplay model
+    // deliberately procedural so Murzik is unmistakably a cat in every level.
+    void gltf
   }
 
   /** Simple fallback body used only if the character model could not be loaded. */
@@ -220,13 +203,39 @@ export class Player {
     const dark = new THREE.MeshStandardMaterial({ color: '#3a2e4f', roughness: 0.5 })
     const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.36, 0.3, 6, 14), fur)
     body.position.y = 0.78
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12), fur)
+    head.scale.set(1.08, 0.92, 0.95)
+    head.position.set(0, 1.22, -0.08)
+    const earGeo = new THREE.ConeGeometry(0.19, 0.42, 4)
+    for (const x of [-0.27, 0.27]) {
+      const ear = new THREE.Mesh(earGeo, fur)
+      ear.position.set(x, 1.59, -0.05)
+      ear.rotation.y = Math.PI / 4
+      this.placeholder.add(ear)
+    }
+    const tail = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.075, 8, 16, Math.PI * 1.35), fur)
+    tail.position.set(0, 0.72, 0.36)
+    tail.rotation.set(Math.PI / 2, 0, Math.PI * 0.15)
+    this.placeholder.add(tail)
     const belly = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 12), cream)
     belly.position.set(0, 0.68, -0.25)
     const eyeGeo = new THREE.SphereGeometry(0.06, 10, 8)
     for (const x of [-0.13, 0.13]) {
       const eye = new THREE.Mesh(eyeGeo, dark)
-      eye.position.set(x, 1.12, -0.32)
+      eye.position.set(x, 1.27, -0.43)
       this.placeholder.add(eye)
+    }
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), dark)
+    nose.scale.set(1.1, .75, .7)
+    nose.position.set(0, 1.16, -0.48)
+    this.placeholder.add(nose)
+    const whiskerGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.28, 6)
+    for (const x of [-0.16, 0.16]) for (const y of [1.12, 1.18]) {
+      const whisker = new THREE.Mesh(whiskerGeo, cream)
+      whisker.position.set(x, y, -0.45)
+      whisker.rotation.z = x < 0 ? -0.22 : 0.22
+      whisker.rotation.x = Math.PI / 2
+      this.placeholder.add(whisker)
     }
     const footGeo = new THREE.SphereGeometry(0.14, 10, 8)
     for (const x of [-0.17, 0.17]) {
@@ -235,25 +244,9 @@ export class Player {
       foot.position.set(x, 0.12, -0.03)
       this.placeholder.add(foot)
     }
-    for (const m of [body, belly]) m.castShadow = true
-    this.placeholder.add(body, belly)
+    for (const m of [body, head, belly, tail]) m.castShadow = true
+    this.placeholder.add(body, head, belly)
   }
-}
-
-/** Remove horizontal travel from root/hip position tracks while keeping vertical bounce and limbs. */
-function stripHorizontalRootMotion(clip: THREE.AnimationClip): THREE.AnimationClip {
-  clip.tracks = clip.tracks.map(track => {
-    if (!track.name.endsWith('.position') || !/(root|hips|pelvis)/i.test(track.name)) return track
-    const values = Array.from(track.values as ArrayLike<number>)
-    const x0 = values[0]
-    const z0 = values[2]
-    for (let i = 0; i < values.length; i += 3) {
-      values[i] = x0
-      values[i + 2] = z0
-    }
-    return new THREE.VectorKeyframeTrack(track.name, Array.from(track.times as ArrayLike<number>), values)
-  })
-  return clip
 }
 
 function dampAngle(from: number, to: number, lambda: number, dt: number): number {
