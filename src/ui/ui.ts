@@ -643,7 +643,7 @@ function template(): string {
   <section class="boot" data-screen="boot">
     <div class="boot-card">
       <div class="boot-mark">${STAR}</div>
-      <h1 class="boot-title">Мурзик</h1>
+      <h1 class="boot-title">Мивлло</h1>
       <p class="boot-sub">и Чудо-остров</p>
       <div class="boot-bar"><i></i></div>
       <p class="boot-status" data-i18n="boot.loading"></p>
@@ -656,7 +656,7 @@ function template(): string {
     <div class="title-shade"></div>
     <div class="title-card">
       <div class="logo">
-        <span class="logo-text">МУРЗИК</span>
+        <span class="logo-text">МИВЛЛО</span>
         <span class="logo-small">И ЧУДО-ОСТРОВ</span>
       </div>
       <p class="tagline" data-i18n="game.tagline"></p>

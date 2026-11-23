@@ -18,12 +18,17 @@ if (build.error) throw build.error
 if (build.status !== 0) process.exit(build.status ?? 1)
 
 const media = [
-  ...[
-    'plyuhik-animated.glb',
-    'npc-grandma.glb', 'npc-fairy.glb', 'npc-mushroom.glb', 'npc-cat.glb',
-    'item-berry.glb', 'item-crystal.glb', 'item-mushroom.glb', 'item-star.glb',
-    'prop-tree.glb', 'prop-cottage.glb',
-  ].map(name => [`assets/models/${name}`, `models/${name}`]),
+  ['assets/models/plyuhik-animated.glb', 'models/plyuhik-animated.glb'],
+  ['assets/models/npc-grandma.glb', 'models/npc-grandma.glb'],
+  ['assets/models/npc-fairy.glb', 'models/npc-fairy.glb'],
+  ['assets/models/npc-mushroom.glb', 'models/npc-mushroom.glb'],
+  ['assets/models/npc-cat.glb', 'models/npc-cat.glb'],
+  ['assets/models/item-berry.glb', 'models/item-berry.glb'],
+  ['assets/models/item-crystal.glb', 'models/item-crystal.glb'],
+  ['assets/models/item-mushroom.glb', 'models/item-mushroom.glb'],
+  ['assets/models/item-star.glb', 'models/item-star.glb'],
+  ['assets/models/prop-tree.glb', 'models/prop-tree.glb'],
+  ['assets/models/prop-cottage.glb', 'models/prop-cottage.glb'],
   ...[
     'magic/spell.wav', 'ui/ready-click-01.wav', 'magic/chimes.wav', 'magic/success.wav',
     'clockwork-city.mp3', 'clockwork-steam.mp3', 'clockwork-plate.mp3', 'clockwork-motor.mp3',
