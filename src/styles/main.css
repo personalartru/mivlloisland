@@ -878,7 +878,8 @@ body.has-touch .inventory { max-width: 46vw; }
     max-width: 100%;
     white-space: nowrap;
   }
-  .tagline { margin: 14px 0 14px; }
+  .logo { margin-bottom: 30px; }
+  .tagline { margin: 0 0 14px; }
   .name-field { margin-bottom: 14px; }
   .level-picker {
     display: flex;
@@ -896,8 +897,8 @@ body.has-touch .inventory { max-width: 46vw; }
     flex: 0 0 clamp(152px, 17vw, 220px);
     min-width: 0;
   }
-  .level-art { height: clamp(78px, 9vw, 108px); }
-  .level-lock { height: clamp(78px, 9vw, 108px); }
+  .level-art { height: clamp(72px, 7vw, 90px); }
+  .level-lock { height: clamp(72px, 7vw, 90px); }
   .level-copy b { font-size: clamp(15px, 1.45vw, 19px); }
   .level-copy small { font-size: clamp(11px, 1vw, 13px); }
 }
