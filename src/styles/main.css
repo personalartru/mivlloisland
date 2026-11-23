@@ -852,3 +852,62 @@ body.has-touch .inventory { max-width: 46vw; }
 .final-fireworks i:nth-child(2){color:#8eeaff;animation-delay:.35s;left:22%;top:38%}.final-fireworks i:nth-child(3){color:#ff9b73;animation-delay:.7s;left:78%;top:33%}.final-fireworks i:nth-child(4){color:#d59cff;animation-delay:1.05s;left:36%;top:16%}.final-fireworks i:nth-child(5){color:#7ce9e1;animation-delay:1.4s;left:66%;top:19%}
 @keyframes final-burst { 0%{transform:scale(.3);opacity:0} 18%{opacity:1} 100%{transform:scale(12);opacity:0} }
 #ui[data-level="summit"] .hud { background:linear-gradient(180deg,rgba(22,18,60,.35),transparent 34%); }
+
+/* Responsive title screen: keep the logo visible and all level cards in one horizontal row. */
+@media (min-width: 721px) {
+  .title {
+    align-items: center;
+    justify-content: flex-start;
+    padding: clamp(16px, 3vh, 34px) clamp(24px, 5vw, 72px);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .title-card {
+    width: min(1240px, 100%);
+    max-width: none;
+    margin: 0 auto;
+  }
+  .logo-text {
+    font-size: clamp(54px, 7.2vw, 94px);
+    line-height: .9;
+  }
+  .logo-small {
+    font-size: clamp(15px, 1.8vw, 23px);
+    letter-spacing: clamp(.18em, .3vw, .35em);
+    max-width: 100%;
+    white-space: nowrap;
+  }
+  .tagline { margin: 14px 0 14px; }
+  .name-field { margin-bottom: 14px; }
+  .level-picker {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: clamp(8px, 1.1vw, 16px);
+    width: 100%;
+    margin: 0 0 16px;
+    padding: 4px 4px 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink-soft) rgba(255,255,255,.35);
+  }
+  .level-card {
+    flex: 0 0 clamp(152px, 17vw, 220px);
+    min-width: 0;
+  }
+  .level-art { height: clamp(78px, 9vw, 108px); }
+  .level-lock { height: clamp(78px, 9vw, 108px); }
+  .level-copy b { font-size: clamp(15px, 1.45vw, 19px); }
+  .level-copy small { font-size: clamp(11px, 1vw, 13px); }
+}
+@media (min-width: 721px) and (max-width: 1050px) {
+  .title { padding-left: 24px; padding-right: 24px; }
+  .title-card { width: 100%; }
+  .logo-text { font-size: clamp(52px, 8vw, 76px); }
+  .tagline { max-width: 560px; }
+  .level-card { flex-basis: 165px; }
+}
+@media (min-width: 1051px) {
+  .level-picker { overflow-x: visible; }
+  .level-card { flex-basis: 1px; flex-grow: 1; }
+}
