@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { Physics } from '../../engine/physics'
 import type { LevelLayout } from '../layout'
 import { createClockworkState, speedMultiplierAt, updateClockworkState, type ClockworkState } from '../clockwork'
-import { flat, glowSprite, gradientSky, groundTexture, rng } from './shared'
+import { addMaze, flat, glowSprite, gradientSky, groundTexture, insideMaze, rng } from './shared'
 
 export class ClockworkWorld {
   readonly scene = new THREE.Scene()
@@ -24,7 +24,7 @@ export class ClockworkWorld {
     this.scene.add(gradientSky({ top: '#100c1b', middle: '#2a1b36', horizon: '#7e4b52', sunDir: new THREE.Vector3(-.5,.7,-.4), sunColor: '#ffd08a', sunStrength: .7 }))
     this.scene.add(new THREE.HemisphereLight('#d8c4ff', '#261a2d', 1.15))
     this.sun = new THREE.DirectionalLight('#ffe1b0', 2.1); this.sun.castShadow = true; this.sun.shadow.mapSize.set(shadowMapSize, shadowMapSize); this.scene.add(this.sun, this.sun.target)
-    this.addGround(random); this.motor = this.addMotor(); this.addPlates(); this.addSpeedPads(); this.addPipes(random); this.addBoundary(random); this.addSkyGears(random)
+    this.addGround(random); addMaze(this.scene, this.physics, layout.maze!, '#44383c', '#e1a35b'); this.motor = this.addMotor(); this.addPlates(); this.addSpeedPads(); this.addPipes(random); this.addBoundary(random); this.addSkyGears(random)
   }
   update(dt: number, focus: THREE.Vector3): void {
     this.time += dt; this.sun.position.set(focus.x + 25, focus.y + 42, focus.z + 18); this.sun.target.position.copy(focus)
@@ -56,6 +56,7 @@ export class ClockworkWorld {
       const g = new THREE.Group()
       const x = -23 + random() * 46
       const z = -22 + random() * 44
+      if (insideMaze(this.layout.maze!, x, z, 1)) continue
       const pipe = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, 2 + random() * 4, 8), flat(new THREE.Color('#78c9bf')))
       pipe.position.y = 1 + pipe.geometry.parameters.height / 2
       g.add(pipe)

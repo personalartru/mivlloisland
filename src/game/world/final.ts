@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { Physics } from '../../engine/physics'
 import type { LevelLayout } from '../layout'
-import { flat, rng } from './shared'
+import { addMaze, flat, insideMaze, rng } from './shared'
 import type { WorldView } from '../world'
 
 export class SummitWorld implements WorldView {
@@ -26,6 +26,7 @@ export class SummitWorld implements WorldView {
       top.castShadow = true; top.receiveShadow = true; this.scene.add(top)
       this.physics.addStaticBox(platform.center, new THREE.Vector3(x * 2, y, z * 2))
     }
+    addMaze(this.scene, this.physics, layout.maze!, '#403862', '#82e8f2')
     this.addHillsAndRocks()
     this.addDistantPeaks()
     this.addSkyRibbons()
@@ -48,8 +49,10 @@ export class SummitWorld implements WorldView {
     for (let i = 0; i < 12; i++) {
       const a = random() * Math.PI * 2; const d = 8 + random() * 19
       const radius = 1.2 + random() * 1.5; const height = .8 + random() * 1.2
+      const x = Math.cos(a) * d; const z = Math.sin(a) * d
+      if (insideMaze(this.layout.maze!, x, z, radius + 1)) continue
       const hill = new THREE.Mesh(new THREE.ConeGeometry(radius, height, 7), flat(new THREE.Color(colors[i % colors.length])))
-      hill.position.set(Math.cos(a) * d, .3 + height / 2, Math.sin(a) * d)
+      hill.position.set(x, .3 + height / 2, z)
       hill.rotation.y = random() * 4; hill.castShadow = true; hill.receiveShadow = true; this.scene.add(hill)
       if (i < 8) {
         const stoneSize = .45 + random() * .5
