@@ -35,10 +35,11 @@ export class Npcs {
       const visual = visuals[quest.id]
       if (!spot || !visual) continue
       const root = new THREE.Group()
-      root.position.copy(spot)
+      const surfaceY = summitSurfaceY(content.layout, spot)
+      root.position.set(spot.x, surfaceY, spot.z)
       const model = visual.build()
       model.position.y = visual.hover ?? 0
-      const idleYaw = Math.atan2(content.layout.spawn.x - spot.x, content.layout.spawn.z - spot.z)
+      const idleYaw = Math.atan2(content.layout.spawn.x - root.position.x, content.layout.spawn.z - root.position.z)
       root.rotation.y = idleYaw
       root.add(model)
 
@@ -57,7 +58,7 @@ export class Npcs {
       })
       // Keep the invisible NPC obstacle on the same terrace as the visual. Summit NPCs
       // live above the base level; using a fixed y=0.7 made their colliders intersect floors.
-      physics.addStaticCylinder(new THREE.Vector3(spot.x, spot.y + 0.7, spot.z), visual.collider ?? 0.45, 1.4)
+      physics.addStaticCylinder(new THREE.Vector3(spot.x, surfaceY + 0.7, spot.z), visual.collider ?? 0.45, 1.4)
     }
   }
 
@@ -107,6 +108,18 @@ export class Npcs {
   positionOf(id: QuestId): THREE.Vector3 {
     return this.npcs.find(npc => npc.id === id)!.root.position.clone()
   }
+}
+
+/** Summit coordinates describe terraces, but NPCs must always stand on their top face. */
+function summitSurfaceY(layout: LevelContent['layout'], spot: THREE.Vector3): number {
+  if (!layout.summit) return spot.y
+  let surface = layout.summit.platforms[0].center.y + layout.summit.platforms[0].size.y / 2
+  for (const platform of layout.summit.platforms) {
+    if (Math.abs(spot.x - platform.center.x) <= platform.size.x && Math.abs(spot.z - platform.center.z) <= platform.size.z) {
+      surface = Math.max(surface, platform.center.y + platform.size.y / 2)
+    }
+  }
+  return surface
 }
 
 function dampAngle(from: number, to: number, lambda: number, dt: number): number {
