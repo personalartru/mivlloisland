@@ -56,6 +56,9 @@ export class Player {
     this.model.rotation.order = 'YXZ'
     this.root.add(this.model)
     this.buildPlaceholder()
+    // The physics body is centred at the capsule midpoint. Move the visual cat down so
+    // the paw soles sit at the capsule's lower edge instead of floating above the ground.
+    this.placeholder.position.y = -(P.halfHeight + P.radius) - .3
     this.model.add(this.placeholder)
     if (gltf) this.useModel(gltf)
     physics.bind(this.body, this.root)
