@@ -27,6 +27,7 @@ export class SummitWorld implements WorldView {
       this.physics.addStaticBox(platform.center, platform.size)
     }
     this.addHillsAndRocks()
+    this.addDistantPeaks()
     this.addSkyRibbons()
     this.addCrystals()
   }
@@ -56,6 +57,17 @@ export class SummitWorld implements WorldView {
         stone.position.set(hill.position.x + (random() - .5) * 2.5, .3 + stoneSize * .7, hill.position.z + (random() - .5) * 2.5)
         stone.rotation.set(random(), random(), random()); stone.castShadow = true; this.scene.add(stone)
       }
+    }
+  }
+  private addDistantPeaks(): void {
+    const random = rng(this.layout.seed + 41)
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2 + .12
+      const distance = 26 + random() * 5
+      const height = 3.5 + random() * 3.5
+      const peak = new THREE.Mesh(new THREE.ConeGeometry(2.8 + random() * 1.8, height, 6), flat(new THREE.Color(i % 2 ? '#30265f' : '#5b3f82')))
+      peak.position.set(Math.cos(angle) * distance, .3 + height / 2, Math.sin(angle) * distance)
+      peak.rotation.y = random() * 4; peak.castShadow = true; peak.receiveShadow = true; this.scene.add(peak)
     }
   }
   private addSkyRibbons(): void {

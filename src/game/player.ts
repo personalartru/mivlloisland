@@ -25,6 +25,7 @@ export class Player {
   private readonly controller: RAPIER.KinematicCharacterController
   private readonly model = new THREE.Group()
   private readonly placeholder = new THREE.Group()
+  private readonly paws: THREE.Mesh[] = []
   private mixer?: THREE.AnimationMixer
   private idleAction?: THREE.AnimationAction
   private walkAction?: THREE.AnimationAction
@@ -174,6 +175,8 @@ export class Player {
       const bob = this.grounded ? Math.abs(Math.sin(this.runCycle)) * 0.07 * Math.min(1, speed / 6) : 0
       this.model.position.y = bob
       this.model.rotation.x = -Math.min(0.2, speed / 50)
+      const stride = this.grounded && speed > 0.35 ? Math.sin(this.runCycle) * 0.045 : 0
+      for (const [i, paw] of this.paws.entries()) paw.position.y = .42 + (i % 2 === 0 ? stride : -stride)
     }
 
     // Blob shadow: a friendly depth cue even when real shadows are disabled.
@@ -237,12 +240,13 @@ export class Player {
       whisker.rotation.x = Math.PI / 2
       this.placeholder.add(whisker)
     }
-    const footGeo = new THREE.SphereGeometry(0.12, 10, 8)
+    const footGeo = new THREE.SphereGeometry(0.14, 12, 8)
     for (const x of [-0.22, 0.22]) for (const z of [-0.2, 0.16]) {
       const foot = new THREE.Mesh(footGeo, cream)
-      foot.scale.set(1.05, 0.55, 1.2)
-      foot.position.set(x, 0.16, z)
+      foot.scale.set(1.1, 0.58, 1.3)
+      foot.position.set(x, .42, z)
       this.placeholder.add(foot)
+      this.paws.push(foot)
     }
     for (const m of [body, head, belly, tail]) m.castShadow = true
     this.placeholder.add(body, head, belly)
