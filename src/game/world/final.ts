@@ -23,14 +23,15 @@ export class SummitWorld implements WorldView {
     for (const [index, platform] of summit.platforms.entries()) {
       const [x, y, z] = [platform.size.x, platform.size.y, platform.size.z]
       const color = terraceColors[index % terraceColors.length]
-      const top = new THREE.Mesh(new THREE.BoxGeometry(x * 2, y, z * 2), flat(new THREE.Color(color)))
-      top.position.copy(platform.center); top.castShadow = true; top.receiveShadow = true; this.scene.add(top)
+      const top = index === 0
+        ? new THREE.Mesh(new THREE.BoxGeometry(x * 2, y, z * 2), flat(new THREE.Color(color)))
+        : new THREE.Mesh(new THREE.PlaneGeometry(x * 2, z * 2), flat(new THREE.Color(color)))
+      if (index === 0) top.position.copy(platform.center)
+      else { top.rotation.x = -Math.PI / 2; top.position.set(platform.center.x, platform.center.y + y / 2 + .035, platform.center.z) }
+      top.castShadow = true; top.receiveShadow = true; this.scene.add(top)
       // Only the broad, flat base is physical. The colored upper terraces are visual
       // jump markers; solid overlapping boxes were able to trap the player capsule.
       if (index === 0) this.physics.addStaticBox(platform.center, new THREE.Vector3(x, y / 2, z))
-      const cap = new THREE.Mesh(new THREE.BoxGeometry(x * 1.99, .045, z * 1.99), new THREE.MeshStandardMaterial({ color, roughness: .7, emissive: color, emissiveIntensity: .12 }))
-      cap.position.set(platform.center.x, platform.center.y + y / 2 + .025, platform.center.z)
-      cap.receiveShadow = true; this.scene.add(cap)
     }
     this.addPillars()
     this.addSkyRibbons()

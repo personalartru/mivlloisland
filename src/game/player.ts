@@ -237,11 +237,11 @@ export class Player {
       whisker.rotation.x = Math.PI / 2
       this.placeholder.add(whisker)
     }
-    const footGeo = new THREE.SphereGeometry(0.14, 10, 8)
-    for (const x of [-0.17, 0.17]) {
+    const footGeo = new THREE.SphereGeometry(0.12, 10, 8)
+    for (const x of [-0.22, 0.22]) for (const z of [-0.2, 0.16]) {
       const foot = new THREE.Mesh(footGeo, cream)
-      foot.scale.set(1, 0.55, 1.25)
-      foot.position.set(x, 0.12, -0.03)
+      foot.scale.set(1.05, 0.55, 1.2)
+      foot.position.set(x, 0.16, z)
       this.placeholder.add(foot)
     }
     for (const m of [body, head, belly, tail]) m.castShadow = true
