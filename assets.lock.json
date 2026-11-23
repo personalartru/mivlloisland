@@ -16,10 +16,6 @@
     "island-sounds": {
       "name": "Звуки приключения",
       "order": 40
-    },
-    "sharing-art": {
-      "name": "Оформление игры",
-      "order": 50
     }
   },
   "bundles": {},
@@ -142,20 +138,6 @@
       "size": 1126748,
       "assetType": "model",
       "groupId": "island-landmarks"
-    },
-    "assets/share/favicon.png": {
-      "path": "/manus-storage/game/sha256/c2c00c4dd036898263726a0f8545838685b983090932cf684d1aa932844277bd.png",
-      "sha256": "sha256:c2c00c4dd036898263726a0f8545838685b983090932cf684d1aa932844277bd",
-      "size": 88001,
-      "assetType": "image",
-      "groupId": "sharing-art"
-    },
-    "assets/share/og.png": {
-      "path": "/manus-storage/game/sha256/ee0e398cde439eb545c2073e2a4f06c9607dc943175e59f30eeb237b1f00afb5.png",
-      "sha256": "sha256:ee0e398cde439eb545c2073e2a4f06c9607dc943175e59f30eeb237b1f00afb5",
-      "size": 1113141,
-      "assetType": "image",
-      "groupId": "sharing-art"
     }
   }
 }
