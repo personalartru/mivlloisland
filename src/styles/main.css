@@ -193,7 +193,7 @@ kbd.round.y { background: #ffe08a; }
 }
 .title-shade { position: absolute; inset: auto 0 0; height: 30vh; background: linear-gradient(0deg, rgba(58,46,79,.35), transparent); pointer-events: none; }
 .title-card { position: relative; width: min(560px, 92vw); pointer-events: auto; }
-.logo { display: flex; flex-direction: column; align-items: flex-start; transform: rotate(-2deg); }
+.logo { display: flex; flex-direction: column; align-items: flex-start; transform: rotate(-2deg); margin-bottom: 18px; }
 .logo-small {
   font-family: var(--font-display);
   font-size: clamp(18px, 2.2vw, 26px);
@@ -218,7 +218,7 @@ kbd.round.y { background: #ffe08a; }
   text-shadow: 0 8px 0 var(--ink), 0 14px 24px rgba(58,46,79,.3);
   margin-top: 8px;
 }
-.tagline { font-size: clamp(16px, 1.6vw, 21px); line-height: 1.4; max-width: 440px; margin: 22px 0 20px; color: var(--ink); }
+.tagline { font-size: clamp(16px, 1.6vw, 21px); line-height: 1.4; max-width: 440px; margin: 0 0 20px; color: var(--ink); }
 .name-field { display: flex; flex-direction: column; gap: 6px; width: min(330px, 100%); margin-bottom: 20px; }
 .name-field span { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
 .name-field input, .name-input {
@@ -705,7 +705,8 @@ body.has-touch .inventory { max-width: 46vw; }
   .title-card { width: 100%; }
   .logo-text { font-size: clamp(56px, 16vw, 84px); }
   .logo-small { font-size: 16px; }
-  .tagline { margin: 14px 0; max-width: 100%; }
+  .logo { margin-bottom: 14px; }
+  .tagline { margin: 0 0 14px; max-width: 100%; }
   .level-picker { gap: 9px; margin-bottom: 12px; }
   .level-card { padding: 8px 8px 10px; border-radius: 16px; }
   .level-art { height: 72px; }
