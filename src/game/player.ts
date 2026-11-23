@@ -202,57 +202,122 @@ export class Player {
     void gltf
   }
 
-  /** Simple fallback body used only if the character model could not be loaded. */
+  /** Pastel plush-like cat assembled from simple geometry, independent of loaded model assets. */
   private buildPlaceholder(): void {
-    const fur = new THREE.MeshStandardMaterial({ color: '#5fc7c9', roughness: 0.8 })
-    const cream = new THREE.MeshStandardMaterial({ color: '#fff1d4', roughness: 0.9 })
-    const dark = new THREE.MeshStandardMaterial({ color: '#3a2e4f', roughness: 0.5 })
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.36, 0.3, 6, 14), fur)
-    body.position.y = 0.78
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12), fur)
-    head.scale.set(1.08, 0.92, 0.95)
-    head.position.set(0, 1.22, -0.08)
-    const earGeo = new THREE.ConeGeometry(0.19, 0.42, 4)
-    for (const x of [-0.27, 0.27]) {
-      const ear = new THREE.Mesh(earGeo, fur)
-      ear.position.set(x, 1.59, -0.05)
-      ear.rotation.y = Math.PI / 4
-      this.placeholder.add(ear)
+    const fur = new THREE.MeshStandardMaterial({ color: '#d895b7', roughness: 0.96 })
+    const blush = new THREE.MeshStandardMaterial({ color: '#f0b8c9', roughness: 0.94 })
+    const cream = new THREE.MeshStandardMaterial({ color: '#f6e3d5', roughness: 0.96 })
+    const lavender = new THREE.MeshStandardMaterial({ color: '#b38bc9', roughness: 0.96 })
+    const innerEar = new THREE.MeshStandardMaterial({ color: '#c87f9e', roughness: 0.9 })
+    const eyeWhite = new THREE.MeshStandardMaterial({ color: '#fff9ef', roughness: 0.32 })
+    const iris = new THREE.MeshStandardMaterial({ color: '#77a675', roughness: 0.3 })
+    const pupil = new THREE.MeshStandardMaterial({ color: '#17232a', roughness: 0.22 })
+    const noseMaterial = new THREE.MeshStandardMaterial({ color: '#503342', roughness: 0.45 })
+    const mouthMaterial = new THREE.MeshStandardMaterial({ color: '#553243', roughness: 0.65 })
+    const tongueMaterial = new THREE.MeshStandardMaterial({ color: '#e789a6', roughness: 0.65 })
+    const eyeGlint = new THREE.MeshBasicMaterial({ color: '#fffef7' })
+    const noteMaterial = new THREE.MeshStandardMaterial({
+      color: '#fff1c4', emissive: '#ffcf74', emissiveIntensity: 0.28, roughness: 0.4,
+    })
+
+    const add = (mesh: THREE.Mesh): THREE.Mesh => {
+      mesh.castShadow = true
+      mesh.receiveShadow = true
+      this.placeholder.add(mesh)
+      return mesh
     }
-    const tail = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.075, 8, 16, Math.PI * 1.35), fur)
-    tail.position.set(0, 0.72, 0.36)
-    tail.rotation.set(Math.PI / 2, 0, Math.PI * 0.15)
-    this.placeholder.add(tail)
-    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 12), cream)
-    belly.position.set(0, 0.68, -0.25)
-    const eyeGeo = new THREE.SphereGeometry(0.06, 10, 8)
-    for (const x of [-0.13, 0.13]) {
-      const eye = new THREE.Mesh(eyeGeo, dark)
-      eye.position.set(x, 1.27, -0.43)
-      this.placeholder.add(eye)
+    const ball = (radius: number, material: THREE.Material, x: number, y: number, z: number,
+      sx = 1, sy = 1, sz = 1): THREE.Mesh => {
+      const mesh = add(new THREE.Mesh(new THREE.SphereGeometry(radius, 20, 16), material))
+      mesh.position.set(x, y, z)
+      mesh.scale.set(sx, sy, sz)
+      return mesh
     }
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), dark)
-    nose.scale.set(1.1, .75, .7)
-    nose.position.set(0, 1.16, -0.48)
-    this.placeholder.add(nose)
-    const whiskerGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.28, 6)
-    for (const x of [-0.16, 0.16]) for (const y of [1.12, 1.18]) {
-      const whisker = new THREE.Mesh(whiskerGeo, cream)
-      whisker.position.set(x, y, -0.45)
-      whisker.rotation.z = x < 0 ? -0.22 : 0.22
-      whisker.rotation.x = Math.PI / 2
-      this.placeholder.add(whisker)
+    const tube = (points: THREE.Vector3[], radius: number, material: THREE.Material, segments = 18): THREE.Mesh => {
+      const path = new THREE.CatmullRomCurve3(points)
+      return add(new THREE.Mesh(new THREE.TubeGeometry(path, segments, radius, 6, false), material))
     }
-    const footGeo = new THREE.SphereGeometry(0.14, 12, 8)
-    for (const x of [-0.22, 0.22]) for (const z of [-0.2, 0.16]) {
-      const foot = new THREE.Mesh(footGeo, cream)
-      foot.scale.set(1.1, 0.58, 1.3)
-      foot.position.set(x, .42, z)
-      this.placeholder.add(foot)
-      this.paws.push(foot)
+
+    // Big soft head, round body and a pale chest patch echo the supplied plush-cat reference.
+    ball(0.46, fur, 0, 0.73, 0.03, 1.08, 1.16, 0.92)
+    ball(0.46, fur, 0, 1.28, -0.05, 1.08, 0.98, 0.91)
+    ball(0.29, cream, 0, 0.70, -0.37, 0.76, 1.04, 0.22)
+    for (const x of [-0.25, 0.25]) ball(0.19, blush, x, 1.17, -0.37, 1.08, 0.72, 0.55)
+
+    // Small rounded ears with warm inner patches.
+    for (const x of [-0.29, 0.29]) {
+      const ear = add(new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.34, 8), fur))
+      ear.position.set(x, 1.57, -0.035)
+      ear.rotation.z = x < 0 ? -0.16 : 0.16
+      const inner = add(new THREE.Mesh(new THREE.ConeGeometry(0.085, 0.20, 8), innerEar))
+      inner.position.set(x, 1.57, -0.155)
+      inner.rotation.z = ear.rotation.z
     }
-    for (const m of [body, head, belly, tail]) m.castShadow = true
-    this.placeholder.add(body, head, belly)
+
+    // Oversized green eyes with layered irises and catchlights.
+    for (const x of [-0.19, 0.19]) {
+      ball(0.128, eyeWhite, x, 1.33, -0.435, 1, 1.05, 0.62)
+      ball(0.087, iris, x, 1.33, -0.522, 1, 1.02, 0.62)
+      ball(0.049, pupil, x, 1.33, -0.579, 0.9, 1.08, 0.58)
+      ball(0.021, eyeGlint, x - 0.026, 1.365, -0.615, 1, 1, 0.7)
+      ball(0.009, eyeGlint, x + 0.026, 1.305, -0.61, 1, 1, 0.7)
+    }
+    ball(0.052, noseMaterial, 0, 1.18, -0.55, 1.2, 0.72, 0.7)
+    ball(0.036, mouthMaterial, 0, 1.115, -0.555, 0.82, 1.08, 0.55)
+    ball(0.018, tongueMaterial, 0, 1.091, -0.585, 0.9, 0.65, 0.55)
+
+    // Fine whiskers and three cream marks on the forehead.
+    for (const side of [-1, 1]) {
+      for (const offset of [-0.035, 0, 0.035]) {
+        tube([
+          new THREE.Vector3(side * 0.31, 1.17 + offset, -0.48),
+          new THREE.Vector3(side * 0.42, 1.18 + offset * 1.5, -0.43),
+          new THREE.Vector3(side * 0.51, 1.20 + offset * 2, -0.36),
+        ], 0.006, cream, 8)
+      }
+    }
+    const headFrontZ = (x: number, y: number): number =>
+      -0.05 - 0.419 * Math.sqrt(Math.max(0.05, 1 - (x / 0.497) ** 2 - ((y - 1.28) / 0.451) ** 2)) - 0.006
+    const headBackZ = (x: number, y: number): number =>
+      -0.05 + 0.419 * Math.sqrt(Math.max(0.05, 1 - (x / 0.497) ** 2 - ((y - 1.28) / 0.451) ** 2)) + 0.006
+    for (const x of [-0.065, 0, 0.065]) {
+      tube([1.60, 1.52, 1.44].map(y => new THREE.Vector3(x, y, headFrontZ(x, y))), 0.012, cream, 10)
+      tube([1.60, 1.52, 1.44].map(y => new THREE.Vector3(x, y, headBackZ(x, y))), 0.012, cream, 10)
+    }
+
+    // Soft horizontal bands across the back and a fluffy tail with a turquoise tip.
+    const backStripe = new THREE.MeshStandardMaterial({ color: '#f6dfdc', roughness: 0.98 })
+    for (const [index, y] of [0.55, 0.71, 0.87].entries()) {
+      const stripeMaterial = index === 1 ? lavender : backStripe
+      const points = [-0.27, -0.135, 0, 0.135, 0.27].map(x => {
+        const surface = Math.sqrt(Math.max(0.05, 1 - (x / 0.497) ** 2 - ((y - 0.73) / 0.534) ** 2))
+        return new THREE.Vector3(x, y, 0.03 + 0.423 * surface + 0.006)
+      })
+      tube(points, 0.016, stripeMaterial, 20)
+    }
+    tube([
+      new THREE.Vector3(0.04, 0.69, 0.36),
+      new THREE.Vector3(0.25, 0.64, 0.48),
+      new THREE.Vector3(0.48, 0.67, 0.51),
+      new THREE.Vector3(0.66, 0.77, 0.42),
+    ], 0.105, lavender, 24)
+    ball(0.135, new THREE.MeshStandardMaterial({ color: '#72c7c0', roughness: 0.9 }), 0.66, 0.77, 0.42, 1.05, 1, 1)
+
+    // A tiny glowing music-note emblem is visible on the chest when the cat turns.
+    ball(0.054, noteMaterial, -0.045, 0.60, -0.434, 1.1, 0.7, 0.3)
+    const noteStem = add(new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.22, 8), noteMaterial))
+    noteStem.position.set(0.035, 0.73, -0.434)
+    tube([
+      new THREE.Vector3(0.035, 0.84, -0.434),
+      new THREE.Vector3(0.095, 0.81, -0.434),
+      new THREE.Vector3(0.12, 0.75, -0.434),
+    ], 0.014, noteMaterial, 8)
+
+    // Four short, rounded paws keep the existing gait and ground contact unchanged.
+    for (const x of [-0.22, 0.22]) for (const z of [-0.16, 0.18]) {
+      const paw = ball(0.15, cream, x, 0.42, z, 1.12, 0.62, 1.3)
+      this.paws.push(paw)
+    }
   }
 }
 
