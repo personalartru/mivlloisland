@@ -56,7 +56,7 @@ export function underwaterItem(kind: ItemKind): THREE.Group {
   if (kind === 'pearl') g.add(new THREE.Mesh(new THREE.SphereGeometry(.28, 14, 10), c))
   else if (kind === 'coral') { for (let i = 0; i < 4; i++) { const branch = new THREE.Mesh(new THREE.CylinderGeometry(.06, .12, .65, 7), c); branch.position.set((i - 1.5) * .15, .3, 0); branch.rotation.z = (i - 1.5) * .22; g.add(branch) } }
   else if (kind === 'shell') { const shell = new THREE.Mesh(new THREE.SphereGeometry(.34, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), c); shell.rotation.x = Math.PI; g.add(shell) }
-  else if (kind === 'kelp') { const stem = new THREE.Mesh(new THREE.CapsuleGeometry(.09, .7, 4, 8), c); stem.rotation.z = .2; g.add(stem) }
+  else if (kind === 'kelp') { const stem = new THREE.Mesh(new THREE.CapsuleGeometry(.09, .7, 4, 8), c); stem.rotation.z = .2; g.add(stem); const leaf = new THREE.SphereGeometry(.14, 8, 6); for (const side of [-1, 1]) { const blade = new THREE.Mesh(leaf, c); blade.scale.set(.6, 1.8, .45); blade.position.set(side * .15, .18, .02); blade.rotation.z = side * -.55; g.add(blade) } }
   else { g.add(new THREE.Mesh(new THREE.SphereGeometry(.32, 14, 10), c)); g.add(new THREE.Mesh(new THREE.SphereGeometry(.15, 10, 8), c)).position.set(.28, .28, 0) }
   g.userData.tick = (time: number) => { g.rotation.y = time * .8; g.position.y = Math.sin(time * 2.2) * .08 }
   return g

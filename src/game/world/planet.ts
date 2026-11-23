@@ -124,7 +124,7 @@ export class PlanetWorld {
     const giant = new THREE.Group()
     const planet = new THREE.Mesh(
       new THREE.SphereGeometry(26, 48, 32),
-      new THREE.MeshStandardMaterial({ map: gasGiantTexture(), roughness: 0.85, metalness: 0, fog: false, emissive: '#2a0f4a', emissiveIntensity: 0.35 }),
+      new THREE.MeshStandardMaterial({ map: gasGiantTexture(this.layout.seed + 17), roughness: 0.85, metalness: 0, fog: false, emissive: '#2a0f4a', emissiveIntensity: 0.35 }),
     )
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(33, 55, 96),
@@ -765,25 +765,26 @@ export class PlanetWorld {
   }
 }
 
-/** Banded gas giant texture, drawn once. */
-function gasGiantTexture(): THREE.CanvasTexture {
+/** Banded gas giant texture, repeatable for the same level seed. */
+function gasGiantTexture(seed: number): THREE.CanvasTexture {
   const canvas = document.createElement('canvas')
   canvas.width = 512
   canvas.height = 256
   const ctx = canvas.getContext('2d')!
+  const random = rng(seed)
   const bands = ['#7a5cc9', '#a97ee0', '#6a4bb0', '#d9a6f0', '#8f6bd6', '#b98be8', '#5a3f9e']
   let y = 0
   while (y < canvas.height) {
-    const h = 8 + Math.random() * 26
-    ctx.fillStyle = bands[Math.floor(Math.random() * bands.length)]
+    const h = 8 + random() * 26
+    ctx.fillStyle = bands[Math.floor(random() * bands.length)]
     ctx.fillRect(0, y, canvas.width, h)
     y += h
   }
   // Soft swirls break the straight bands.
   for (let i = 0; i < 26; i += 1) {
-    const cx = Math.random() * canvas.width
-    const cy = Math.random() * canvas.height
-    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30 + Math.random() * 50)
+    const cx = random() * canvas.width
+    const cy = random() * canvas.height
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30 + random() * 50)
     g.addColorStop(0, 'rgba(255,220,255,0.35)')
     g.addColorStop(1, 'rgba(255,220,255,0)')
     ctx.fillStyle = g

@@ -51,7 +51,25 @@ export class ClockworkWorld {
   private addMotor(): THREE.Group { const at=this.layout.landmark; const g=new THREE.Group();g.position.copy(at);const base=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.8,.5,16),flat(new THREE.Color('#55333b')));base.position.y=.25;g.add(base);for(let i=0;i<4;i++){const gear=new THREE.Mesh(new THREE.TorusGeometry(1.4+i*.35,.18,8,16),new THREE.MeshStandardMaterial({color:i%2?'#e1a35b':'#6fd8c8',metalness:.7,roughness:.25}));gear.rotation.x=Math.PI/2;gear.position.y=.7+i*.35;g.add(gear);this.gears.push(gear)}const chimney=new THREE.Mesh(new THREE.CylinderGeometry(.7,.9,5,10),flat(new THREE.Color('#6f4b4a')));chimney.position.y=2.7;g.add(chimney);const glow=glowSprite('#ffd27a',1.3,1);glow.position.y=5.3;g.add(glow);this.scene.add(g);this.physics.addStaticCylinder(new THREE.Vector3(at.x,2,at.z),2.4,4);return g }
   private addPlates(): void { for(const [i,at] of this.layout.clockwork!.plates.entries()){const p=new THREE.Mesh(new THREE.CylinderGeometry(1.25,1.35,.12,12),new THREE.MeshStandardMaterial({color:'#5a4052',emissive:'#f2b35c',emissiveIntensity:.18,metalness:.65,roughness:.3}));p.position.set(at.x,.1,at.z);this.scene.add(p);this.plates.push(p);const l=new THREE.PointLight('#ffd27a',.05,5);l.position.set(at.x,1,at.z);this.scene.add(l);this.lamps.push(l);this.physics.addStaticCylinder(new THREE.Vector3(at.x,.5,at.z),1.3,.7);void i} }
   private addSpeedPads(): void { for(const pad of this.layout.clockwork!.speedPads){const m=new THREE.Mesh(new THREE.RingGeometry(pad.radius*.55,pad.radius,6),new THREE.MeshBasicMaterial({color:'#62ead5',transparent:true,opacity:.8,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;m.position.set(pad.center.x,.08,pad.center.z);this.scene.add(m);this.pads.push(m)} }
-  private addPipes(random:()=>number): void { for(let i=0;i<11;i++){const g=new THREE.Group();const x=-23+random()*46;const z=-22+random()*44;const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,2+random()*4,8),flat(new THREE.Color('#78c9bf')));pipe.position.y=1+pipe.geometry.parameters.height/2;g.add(pipe);const cap=new THREE.Mesh(new THREE.SphereGeometry(.27,8,6),flat(new THREE.Color('#e1a35b')));cap.position.y=pipe.position.y+pipe.geometry.parameters.height/2;g.add(cap);this.scene.add(g);const s=glowSprite('#d9fff7',.38,.16);s.position.set(x,1.2,z);this.scene.add(s);this.smoke.push(s)} }
+  private addPipes(random:()=>number): void {
+    for (let i = 0; i < 11; i++) {
+      const g = new THREE.Group()
+      const x = -23 + random() * 46
+      const z = -22 + random() * 44
+      const pipe = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, 2 + random() * 4, 8), flat(new THREE.Color('#78c9bf')))
+      pipe.position.y = 1 + pipe.geometry.parameters.height / 2
+      g.add(pipe)
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(.27, 8, 6), flat(new THREE.Color('#e1a35b')))
+      cap.position.y = pipe.position.y + pipe.geometry.parameters.height / 2
+      g.add(cap)
+      const steam = glowSprite('#d9fff7', .38, .16)
+      steam.position.y = cap.position.y + .28
+      g.add(steam)
+      g.position.set(x, 0, z)
+      this.scene.add(g)
+      this.smoke.push(steam)
+    }
+  }
   private addBoundary(random:()=>number): void {const n=64,r=this.layout.playableRadius+1;for(let i=0;i<n;i++){const a=i/n*Math.PI*2,x=Math.cos(a)*r,z=Math.sin(a)*r;this.physics.addStaticBox(new THREE.Vector3(x,2.5,z),new THREE.Vector3(.6,5,3.5),new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),-a));if(i%2===0){const gear=new THREE.Mesh(new THREE.TorusGeometry(1+random(),.16,6,12),flat(new THREE.Color('#8b5550')));gear.position.set(x,1,z);gear.rotation.x=Math.PI/2;this.scene.add(gear)}}}
   private addSkyGears(random:()=>number): void {for(let i=0;i<8;i++){const gear=new THREE.Mesh(new THREE.TorusGeometry(3+random()*3,.22,8,24),new THREE.MeshBasicMaterial({color:i%2?'#e1a35b':'#75d8ca',transparent:true,opacity:.25,depthWrite:false}));gear.position.set(-60+random()*120,18+random()*35,-55+random()*80);gear.rotation.set(random(),random(),random());this.scene.add(gear);this.gears.push(gear)}}
 }

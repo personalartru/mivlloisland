@@ -54,8 +54,8 @@ export class SummitWorld implements WorldView {
       if (i < 8) {
         const stoneSize = .45 + random() * .5
         const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(stoneSize, 0), flat(new THREE.Color(i % 2 ? '#8e7bbf' : '#b26b91')))
-        stone.position.set(hill.position.x + (random() - .5) * 2.5, .3 + stoneSize * .7, hill.position.z + (random() - .5) * 2.5)
-        stone.rotation.set(random(), random(), random()); stone.castShadow = true; this.scene.add(stone)
+        stone.position.set(hill.position.x + (random() - .5) * 2.5, .3 + stoneSize * .86, hill.position.z + (random() - .5) * 2.5)
+        stone.rotation.set(0, random() * Math.PI * 2, 0); stone.castShadow = true; stone.receiveShadow = true; this.scene.add(stone)
       }
     }
   }
@@ -79,8 +79,9 @@ export class SummitWorld implements WorldView {
   private addCrystals(): void {
     const spots = this.layout.itemSpots.rune ?? []
     for (const [i, spot] of spots.entries()) {
-      const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(.35 + i * .03), new THREE.MeshStandardMaterial({ color: '#7ce9e1', emissive: '#46dbe1', emissiveIntensity: 1.2, transparent: true, opacity: .84 }))
-      crystal.position.set(spot.x + .7, .42, spot.z - .7); this.scene.add(crystal); this.crystals.push(crystal)
+      const size = .35 + i * .03
+      const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(size), new THREE.MeshStandardMaterial({ color: '#7ce9e1', emissive: '#46dbe1', emissiveIntensity: 1.2, transparent: true, opacity: .84 }))
+      crystal.position.set(spot.x + .7, .3 + size, spot.z - .7); this.scene.add(crystal); this.crystals.push(crystal)
     }
   }
 }
