@@ -5,6 +5,8 @@ import type { ClockworkLayout } from './clockwork'
 
 export type SummitLayout = { platforms: Array<{ center: THREE.Vector3; size: THREE.Vector3 }>; summit: THREE.Vector3 }
 
+export type MazeLayout = { center: THREE.Vector3; cellSize: number; grid: string[] }
+
 export type UnderwaterLayout = {
   resonators: THREE.Vector3[]
   resonatorRadius: number
@@ -21,11 +23,21 @@ export type LevelLayout = {
   landmark: THREE.Vector3
   building: THREE.Vector3
   seed: number
+  maze?: MazeLayout
   clockwork?: ClockworkLayout
   underwater?: UnderwaterLayout
   summit?: SummitLayout
 }
 const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z)
+
+const MAZE_GRID = ['###.###', '#...#.#', '#.#.#.#', '#.#...#', '#.###.#', '#.....#', '###.###']
+const clockworkMaze: MazeLayout = { center: v(-20.8, 0, .2), cellSize: 1.8, grid: MAZE_GRID }
+const summitMaze: MazeLayout = { center: v(0, 0, -7.5), cellSize: 1.8, grid: MAZE_GRID }
+const mazeCell = (maze: MazeLayout, row: number, column: number, y: number) => v(
+  maze.center.x + (column - (maze.grid[0]!.length - 1) / 2) * maze.cellSize,
+  y,
+  maze.center.z + (row - (maze.grid.length - 1) / 2) * maze.cellSize,
+)
 
 export const ISLAND_LAYOUT: LevelLayout = {
   radius: 30, playableRadius: 28.2, spawn: v(0, 1, 0),
@@ -42,8 +54,9 @@ export const PLANET_LAYOUT: LevelLayout = {
 export const CLOCKWORK_LAYOUT: LevelLayout = {
   radius: 30, playableRadius: 28.2, spawn: v(0, 1, 0),
   npcSpots: { geara: v(13,0,8), piston: v(-12,0,9), spring: v(0,0,-13), copper: v(-14,0,-8), tick: v(14,0,-8) },
-  itemSpots: { cog: [v(9,.7,5),v(16,.7,9),v(19,.7,4),v(12,.7,13)], bolt: [v(-8,.7,7),v(-14,.7,6),v(-17,.7,12)], spring: [v(-2,.7,-8),v(6,.7,-14),v(1,.7,-22),v(8,.7,-20)], valve: [v(-8,.7,-5),v(-14,.7,-3),v(-20,.7,-8)], gear: [v(9,.7,-5),v(16,.7,-4),v(20,.7,-10)] },
+  itemSpots: { cog: [v(9,.7,5),v(16,.7,9),v(19,.7,4),v(12,.7,13)], bolt: [v(-8,.7,7),v(-14,.7,6),v(-17,.7,12)], spring: [v(-2,.7,-8),v(6,.7,-14),v(1,.7,-22),v(8,.7,-20)], valve: [mazeCell(clockworkMaze, 2, 1, .7), mazeCell(clockworkMaze, 2, 5, .7), mazeCell(clockworkMaze, 5, 3, .7)], gear: [v(9,.7,-5),v(16,.7,-4),v(20,.7,-10)] },
   water: { center: v(4,0,-18), radius: 3.8 }, landmark: v(0,0,23), building: v(-17,0,4), seed: 20261117,
+  maze: clockworkMaze,
   clockwork: { plates: [v(0,0,8),v(10,0,0),v(0,0,-10),v(-10,0,0),v(0,0,17)], plateRadius: 1.35, speedPads: [{center:v(5,0,2),radius:2.2},{center:v(-5,0,2),radius:2.2},{center:v(0,0,-4),radius:2.2}] },
 }
 export const UNDERWATER_LAYOUT: LevelLayout = {
@@ -61,10 +74,11 @@ export const SUMMIT_LAYOUT: LevelLayout = {
     rune: [v(-7,.75,5),v(-15,1.25,5),v(-10,1.05,10),v(2,1.55,7),v(-2,1.3,13)],
     feather: [v(7,.75,5),v(15,1.25,5),v(10,1.05,10),v(6,1.55,-3)],
     ore: [v(-8,.8,-6),v(8,.8,-6),v(-14,1.2,-8),v(14,1.2,-8)],
-    lantern: [v(0,.8,-8),v(-10,1.3,-12),v(10,1.3,-12),v(0,1.7,-15)],
+    lantern: [mazeCell(summitMaze, 2, 1, .8), mazeCell(summitMaze, 2, 5, .8), mazeCell(summitMaze, 5, 2, .8), mazeCell(summitMaze, 5, 4, .8)],
     crown: [v(-2,1.35,2),v(2,1.35,2),v(0,1.8,6)],
   },
   water: { center: v(0,0,0), radius: 0 }, landmark: v(0,2.0,0), building: v(0,0,0), seed: 20261119,
+  maze: summitMaze,
   summit: { platforms: [
     { center:v(0,0,0), size:v(30,.6,30) },
   ], summit:v(0,.31,0) },

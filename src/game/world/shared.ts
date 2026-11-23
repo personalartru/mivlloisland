@@ -1,5 +1,7 @@
 import * as THREE from 'three'
 import { haloTexture } from '../textures'
+import type { Physics } from '../../engine/physics'
+import type { MazeLayout } from '../layout'
 
 /** Mulberry32: tiny deterministic RNG so a level never changes between loads. */
 export function rng(seed: number): () => number {
@@ -212,4 +214,45 @@ export function groundTexture(base: string, blotches: string[], speckles: string
   tex.colorSpace = THREE.SRGBColorSpace
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping
   return tex
+}
+
+export function addMaze(scene: THREE.Scene, physics: Physics, maze: MazeLayout, wallColor: string, trimColor: string): void {
+  const rows = maze.grid.length
+  const columns = maze.grid[0]!.length
+  const height = 2.6
+  const thickness = .28
+  const wallMaterial = flat(new THREE.Color(wallColor))
+  const trimMaterial = flat(new THREE.Color(trimColor))
+  const open = (row: number, column: number) => maze.grid[row]?.[column] === '.'
+  const addWall = (x: number, z: number, horizontal: boolean) => {
+    const size = horizontal
+      ? new THREE.Vector3(maze.cellSize + .06, height, thickness)
+      : new THREE.Vector3(thickness, height, maze.cellSize + .06)
+    const center = new THREE.Vector3(x, height / 2, z)
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), wallMaterial)
+    wall.position.copy(center); wall.castShadow = true; wall.receiveShadow = true; scene.add(wall)
+    const capSize = horizontal
+      ? new THREE.Vector3(maze.cellSize + .1, .12, thickness + .04)
+      : new THREE.Vector3(thickness + .04, .12, maze.cellSize + .1)
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(capSize.x, capSize.y, capSize.z), trimMaterial)
+    cap.position.set(x, height - .06, z); cap.castShadow = true; scene.add(cap)
+    physics.addStaticBox(center, size)
+  }
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      if (!open(row, column)) continue
+      const x = maze.center.x + (column - (columns - 1) / 2) * maze.cellSize
+      const z = maze.center.z + (row - (rows - 1) / 2) * maze.cellSize
+      if (!open(row - 1, column) && !(row === 0 && open(row, column))) addWall(x, z - maze.cellSize / 2, true)
+      if (!open(row + 1, column) && !(row === rows - 1 && open(row, column))) addWall(x, z + maze.cellSize / 2, true)
+      if (!open(row, column - 1)) addWall(x - maze.cellSize / 2, z, false)
+      if (!open(row, column + 1)) addWall(x + maze.cellSize / 2, z, false)
+    }
+  }
+}
+
+export function insideMaze(maze: MazeLayout, x: number, z: number, padding = 0): boolean {
+  return Math.abs(x - maze.center.x) < maze.grid[0]!.length * maze.cellSize / 2 + padding
+    && Math.abs(z - maze.center.z) < maze.grid.length * maze.cellSize / 2 + padding
 }

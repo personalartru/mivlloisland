@@ -847,6 +847,13 @@ body.has-touch .inventory { max-width: 46vw; }
 .final-congrats, .final-sub, .final-fireworks { display:none; }
 .results.is-final .final-congrats { display:block; margin:10px 0 4px; color:#fff2a6; font-size:clamp(1.35rem,3vw,2.25rem); text-shadow:0 0 18px rgba(255,220,100,.55); }
 .results.is-final .final-sub { display:block; margin:0 auto 12px; color:#f6eaff; max-width:34rem; }
+.results.is-final .results-card { color:#f6eaff; }
+.results.is-final .results-title, .results.is-final .results-thanks,
+.results.is-final .result-stat, .results.is-final .online-status { color:#f6eaff; }
+.results.is-final .result-stat { background:rgba(255,255,255,.1); }
+.results.is-final .online-status.is-error { color:#ffc3cf; }
+.results.is-final .online-status.is-saved { color:#b9f2c1; }
+.results.is-final .results-newbest, .results.is-final .btn { color:var(--ink); }
 .final-fireworks { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
 .results.is-final .final-fireworks { display:block; }
 .final-fireworks i { position:absolute; width:7px; height:7px; border-radius:50%; left:50%; top:30%; background:#ffe77a; box-shadow:0 0 12px 4px currentColor; animation:final-burst 2.4s ease-out infinite; }

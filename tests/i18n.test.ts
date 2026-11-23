@@ -19,6 +19,14 @@ describe('i18n', () => {
     }
   })
 
+  it('uses Mivlik throughout Russian quest dialogue and final copy', () => {
+    for (const [key, value] of Object.entries(ru)) {
+      if (key.startsWith('quest.')) expect(value, key).not.toMatch(/мурзик/i)
+    }
+    expect(ru['final.sub']).not.toMatch(/мурзик/i)
+    expect(ru['quest.summit.thanks']).toContain('Мивлик')
+  })
+
   it('labels the public leaderboard name as a nickname and warns against personal details', () => {
     expect(ru['menu.nameLabel']).toBe('Игровой ник')
     expect(ru['menu.namePrivacy']).toContain('виден другим игрокам')
