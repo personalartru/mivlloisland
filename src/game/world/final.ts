@@ -19,19 +19,14 @@ export class SummitWorld implements WorldView {
     this.scene.add(new THREE.HemisphereLight('#b9d8ff', '#241b4f', 1.25))
     this.sun = new THREE.DirectionalLight('#ffe0ba', 2.4); this.sun.castShadow = true; this.sun.shadow.mapSize.set(shadowMapSize, shadowMapSize)
     this.scene.add(this.sun, this.sun.target)
-    const terraceColors = ['#6650a8', '#3f9fbe', '#48b58f', '#e0a34b', '#d86882', '#a85ac4']
-    for (const [index, platform] of summit.platforms.entries()) {
+    for (const platform of summit.platforms) {
       const [x, y, z] = [platform.size.x, platform.size.y, platform.size.z]
-      const color = terraceColors[index % terraceColors.length]
-      const top = new THREE.Mesh(new THREE.PlaneGeometry(x * 2, z * 2), flat(new THREE.Color(color)))
-      top.rotation.x = -Math.PI / 2
-      top.position.set(platform.center.x, platform.center.y + y / 2 + .02, platform.center.z)
+      const top = new THREE.Mesh(new THREE.BoxGeometry(x * 2, y, z * 2), flat(new THREE.Color('#41356f')))
+      top.position.set(platform.center.x, platform.center.y, platform.center.z)
       top.castShadow = true; top.receiveShadow = true; this.scene.add(top)
-      // Only the broad, flat base is physical. The colored upper terraces are visual
-      // jump markers; solid overlapping boxes were able to trap the player capsule.
-      if (index === 0) this.physics.addStaticBox(platform.center, new THREE.Vector3(x, y / 2, z))
+      this.physics.addStaticBox(platform.center, platform.size)
     }
-    this.addPillars()
+    this.addHillsAndRocks()
     this.addSkyRibbons()
     this.addCrystals()
   }
@@ -46,12 +41,21 @@ export class SummitWorld implements WorldView {
   updateMechanics(): void {}
   consumeMechanicEvents(): Array<'plate' | 'motor' | 'resonator' | 'beacon'> { return [] }
 
-  private addPillars(): void {
+  private addHillsAndRocks(): void {
     const random = rng(this.layout.seed)
-    for (let i = 0; i < 22; i++) {
-      const a = random() * Math.PI * 2; const d = 20 + random() * 25; const h = 4 + random() * 14
-      const rock = new THREE.Mesh(new THREE.ConeGeometry(1.8 + random() * 2.5, h, 6), flat(new THREE.Color(i % 2 ? '#30265f' : '#5b3f82')))
-      rock.position.set(Math.cos(a) * d, h / 2 - 2, Math.sin(a) * d); rock.rotation.y = random() * 4; this.scene.add(rock)
+    const colors = ['#6650a8', '#3f9fbe', '#48b58f', '#d86882', '#a85ac4']
+    for (let i = 0; i < 12; i++) {
+      const a = random() * Math.PI * 2; const d = 8 + random() * 19
+      const radius = 1.2 + random() * 1.5; const height = .8 + random() * 1.2
+      const hill = new THREE.Mesh(new THREE.ConeGeometry(radius, height, 7), flat(new THREE.Color(colors[i % colors.length])))
+      hill.position.set(Math.cos(a) * d, .3 + height / 2, Math.sin(a) * d)
+      hill.rotation.y = random() * 4; hill.castShadow = true; hill.receiveShadow = true; this.scene.add(hill)
+      if (i < 8) {
+        const stoneSize = .45 + random() * .5
+        const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(stoneSize, 0), flat(new THREE.Color(i % 2 ? '#8e7bbf' : '#b26b91')))
+        stone.position.set(hill.position.x + (random() - .5) * 2.5, .3 + stoneSize * .7, hill.position.z + (random() - .5) * 2.5)
+        stone.rotation.set(random(), random(), random()); stone.castShadow = true; this.scene.add(stone)
+      }
     }
   }
   private addSkyRibbons(): void {
@@ -61,10 +65,10 @@ export class SummitWorld implements WorldView {
     }
   }
   private addCrystals(): void {
-    const summit = this.layout.summit!
-    for (const [i, p] of summit.platforms.entries()) {
+    const spots = this.layout.itemSpots.rune ?? []
+    for (const [i, spot] of spots.entries()) {
       const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(.35 + i * .03), new THREE.MeshStandardMaterial({ color: '#7ce9e1', emissive: '#46dbe1', emissiveIntensity: 1.2, transparent: true, opacity: .84 }))
-      crystal.position.set(p.center.x + p.size.x * .65, p.center.y + p.size.y + .6, p.center.z - p.size.z * .55); this.scene.add(crystal); this.crystals.push(crystal)
+      crystal.position.set(spot.x + .7, .42, spot.z - .7); this.scene.add(crystal); this.crystals.push(crystal)
     }
   }
 }

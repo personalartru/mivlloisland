@@ -56,19 +56,18 @@ export const UNDERWATER_LAYOUT: LevelLayout = {
 
 export const SUMMIT_LAYOUT: LevelLayout = {
   radius: 34, playableRadius: 32, spawn: v(0, 1.15, 0),
-  npcSpots: { sage: v(-10, .75, 1), yeti: v(10, 1.0, 0), eagle: v(-8, 1.3, 3), moon: v(8, 1.6, 2), summit: v(0, 2.0, 0) },
+  npcSpots: { sage: v(-12, 0, 6), yeti: v(12, 0, 6), eagle: v(-12, 0, -7), moon: v(12, 0, -7), summit: v(0, 0, 14) },
   itemSpots: {
-    rune: [v(-6,.7,4),v(-12,.9,0),v(-8,1.2,3),v(2,1.5,2),v(-2,2.0,0)],
-    feather: [v(6,.7,4),v(12,1.0,0),v(7,1.4,-1),v(-6,1.7,1)],
-    ore: [v(-8,.7,-5),v(8,.9,-3),v(-6,1.3,2),v(6,1.5,2)],
-    lantern: [v(0,.7,-7),v(-9,.9,2),v(9,1.3,2),v(0,1.7,-2)],
-    crown: [v(-2,2.0,2),v(2,2.0,0),v(0,2.0,-2)],
+    rune: [v(-7,.75,5),v(-15,1.25,5),v(-10,1.05,10),v(2,1.55,7),v(-2,1.3,13)],
+    feather: [v(7,.75,5),v(15,1.25,5),v(10,1.05,10),v(6,1.55,-3)],
+    ore: [v(-8,.8,-6),v(8,.8,-6),v(-14,1.2,-8),v(14,1.2,-8)],
+    lantern: [v(0,.8,-8),v(-10,1.3,-12),v(10,1.3,-12),v(0,1.7,-15)],
+    crown: [v(-2,1.35,2),v(2,1.35,2),v(0,1.8,6)],
   },
   water: { center: v(0,0,0), radius: 0 }, landmark: v(0,2.0,0), building: v(0,0,0), seed: 20261119,
   summit: { platforms: [
-    { center:v(0,0,0), size:v(30,.6,30) }, { center:v(-10,.46,1), size:v(6,.32,5) }, { center:v(10,.71,0), size:v(6,.32,5) },
-    { center:v(-8,1.01,3), size:v(5,.32,5) }, { center:v(8,1.31,2), size:v(5,.32,5) }, { center:v(0,1.71,0), size:v(6,.32,5) },
-  ], summit:v(0,1.87,0) },
+    { center:v(0,0,0), size:v(30,.6,30) },
+  ], summit:v(0,.31,0) },
 }
 
 export const LAYOUTS: Record<LevelId, LevelLayout> = { island: ISLAND_LAYOUT, planet: PLANET_LAYOUT, clockwork: CLOCKWORK_LAYOUT, underwater: UNDERWATER_LAYOUT, summit: SUMMIT_LAYOUT }

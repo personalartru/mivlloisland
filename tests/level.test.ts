@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CONTENT, CLOCKWORK_CONTENT, ISLAND_CONTENT, PLANET_CONTENT, UNDERWATER_CONTENT } from '../src/game/content'
-import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, UNDERWATER_LAYOUT, type LevelLayout } from '../src/game/layout'
+import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, UNDERWATER_LAYOUT, SUMMIT_LAYOUT, type LevelLayout } from '../src/game/layout'
 import { rng } from '../src/game/world/shared'
 
 const LEVELS: Array<[string, LevelLayout, typeof ISLAND_CONTENT]> = [
@@ -104,5 +104,15 @@ describe('the underwater level', () => {
     expect(UNDERWATER_LAYOUT.underwater?.resonators).toHaveLength(5)
     expect(UNDERWATER_LAYOUT.underwater?.bubbleLanes).toHaveLength(3)
     expect(CONTENT.underwater).toBe(UNDERWATER_CONTENT)
+  })
+})
+
+describe('the Fantastic Mountains level', () => {
+  it('uses one flat physical base with nearby elevated jump targets', () => {
+    expect(SUMMIT_LAYOUT.summit?.platforms).toHaveLength(1)
+    expect(SUMMIT_LAYOUT.summit?.platforms[0]?.center.y).toBe(0)
+    const spots = Object.values(SUMMIT_LAYOUT.itemSpots).flatMap(items => items ?? [])
+    expect(spots.some(spot => spot.y >= 1.2)).toBe(true)
+    expect(spots.every(spot => spot.y <= 1.8)).toBe(true)
   })
 })
