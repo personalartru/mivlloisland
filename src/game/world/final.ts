@@ -24,7 +24,7 @@ export class SummitWorld implements WorldView {
       const top = new THREE.Mesh(new THREE.BoxGeometry(x * 2, y, z * 2), flat(new THREE.Color('#41356f')))
       top.position.set(platform.center.x, platform.center.y, platform.center.z)
       top.castShadow = true; top.receiveShadow = true; this.scene.add(top)
-      this.physics.addStaticBox(platform.center, platform.size)
+      this.physics.addStaticBox(platform.center, new THREE.Vector3(x * 2, y, z * 2))
     }
     this.addHillsAndRocks()
     this.addDistantPeaks()
