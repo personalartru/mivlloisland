@@ -679,12 +679,12 @@ function template(): string {
           <span class="level-copy"><b data-i18n="level.clockwork.title"></b><small data-i18n="level.clockwork.subtitle"></small></span>
           <span class="level-lock" data-i18n="level.clockwork.locked"></span>
         </button>
-        <button class="level-card summit" data-action="play-summit" data-nav><span class="level-art summit" aria-hidden="true"><i class="level-mountain"></i><i class="level-spark"></i></span><span class="level-copy"><b data-i18n="level.summit.title"></b><small data-i18n="level.summit.subtitle"></small></span><span class="level-lock" data-i18n="level.summit.locked"></span></button>
         <button class="level-card underwater" data-action="play-underwater" data-nav>
           <span class="level-art underwater" aria-hidden="true"><i class="level-coral"></i><i class="level-bubble"></i><i class="level-wave"></i></span>
           <span class="level-copy"><b data-i18n="level.underwater.title"></b><small data-i18n="level.underwater.subtitle"></small></span>
           <span class="level-lock" data-i18n="level.underwater.locked"></span>
         </button>
+        <button class="level-card summit" data-action="play-summit" data-nav><span class="level-art summit" aria-hidden="true"><i class="level-mountain"></i><i class="level-spark"></i></span><span class="level-copy"><b data-i18n="level.summit.title"></b><small data-i18n="level.summit.subtitle"></small></span><span class="level-lock" data-i18n="level.summit.locked"></span></button>
       </div>
       <div class="menu-buttons">
         <button class="btn" data-action="leaderboard" data-nav data-i18n="menu.leaderboard"></button>

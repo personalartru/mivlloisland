@@ -35,6 +35,17 @@ describe('save', () => {
     expect(parseSave(JSON.stringify({ version: 5, summitUnlocked: true })).summitUnlocked).toBe(true)
   })
 
+  it('locks later levels for a fresh browser and repairs the sequential unlock chain in saved progress', () => {
+    const fresh = parseSave(null)
+    expect([fresh.planetUnlocked, fresh.clockworkUnlocked, fresh.underwaterUnlocked, fresh.summitUnlocked]).toEqual([false, false, false, false])
+
+    const current = parseSave(JSON.stringify({ version: 5, planetUnlocked: true, clockworkUnlocked: true }))
+    expect([current.planetUnlocked, current.clockworkUnlocked, current.underwaterUnlocked, current.summitUnlocked]).toEqual([true, true, false, false])
+
+    const migrated = parseSave(JSON.stringify({ version: 5, underwaterUnlocked: true, summitUnlocked: true }))
+    expect([migrated.planetUnlocked, migrated.clockworkUnlocked, migrated.underwaterUnlocked, migrated.summitUnlocked]).toEqual([true, true, true, true])
+  })
+
   it('keeps a bounded, ordered leaderboard', () => {
     let board = [] as ReturnType<typeof defaultSave>['leaderboard']
     for (let i = 0; i < LEADERBOARD_SIZE + 3; i += 1) board = insertScore(board, { name: `p${i}`, score: i * 10, seconds: 60, at: i }).board
