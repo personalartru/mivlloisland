@@ -235,7 +235,8 @@ export function addMaze(scene: THREE.Scene, physics: Physics, maze: MazeLayout, 
       ? new THREE.Vector3(maze.cellSize + .1, .12, thickness + .04)
       : new THREE.Vector3(thickness + .04, .12, maze.cellSize + .1)
     const cap = new THREE.Mesh(new THREE.BoxGeometry(capSize.x, capSize.y, capSize.z), trimMaterial)
-    cap.position.set(x, height - .06, z); cap.castShadow = true; scene.add(cap)
+    // Keep the cap's top face above the wall top to prevent z-fighting.
+    cap.position.set(x, height - .04, z); cap.castShadow = true; scene.add(cap)
     physics.addStaticBox(center, size)
   }
 
