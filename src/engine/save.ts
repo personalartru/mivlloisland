@@ -66,6 +66,10 @@ export function parseSave(raw: string | null): SaveData {
   }
   if (data.version !== 1 && data.version !== 2 && data.version !== 3 && data.version !== 4 && data.version !== 5) return base
   const board = Array.isArray(data.leaderboard) ? data.leaderboard : []
+  const summitUnlocked = data.version === 5 && data.summitUnlocked === true
+  const underwaterUnlocked = (data.version === 4 || data.version === 5) && (data.underwaterUnlocked === true || summitUnlocked)
+  const clockworkUnlocked = (data.version === 3 || data.version === 4 || data.version === 5) && (data.clockworkUnlocked === true || underwaterUnlocked)
+  const planetUnlocked = (data.version === 2 || data.version === 3 || data.version === 4 || data.version === 5) && (data.planetUnlocked === true || clockworkUnlocked)
   return {
     version: 5,
     locale: 'ru',
@@ -77,10 +81,10 @@ export function parseSave(raw: string | null): SaveData {
     quality: data.quality === 'low' || data.quality === 'medium' || data.quality === 'high' ? data.quality : base.quality,
     reducedMotion: data.reducedMotion === true,
     tutorialDone: data.tutorialDone === true,
-    planetUnlocked: (data.version === 2 || data.version === 3) && data.planetUnlocked === true,
-    clockworkUnlocked: (data.version === 3 || data.version === 4) && data.clockworkUnlocked === true,
-    underwaterUnlocked: (data.version === 4 || data.version === 5) && data.underwaterUnlocked === true,
-    summitUnlocked: data.version === 5 && data.summitUnlocked === true,
+    planetUnlocked,
+    clockworkUnlocked,
+    underwaterUnlocked,
+    summitUnlocked,
     playerName: typeof data.playerName === 'string' && data.playerName.trim() ? data.playerName.trim().slice(0, 16) : base.playerName,
     leaderboard: board
       .filter((e): e is ScoreEntry => !!e && typeof e === 'object' && typeof (e as ScoreEntry).name === 'string' && Number.isFinite((e as ScoreEntry).score))

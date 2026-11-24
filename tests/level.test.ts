@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { CONTENT, CLOCKWORK_CONTENT, ISLAND_CONTENT, PLANET_CONTENT, UNDERWATER_CONTENT } from '../src/game/content'
 import { ISLAND_LAYOUT, PLANET_LAYOUT, CLOCKWORK_LAYOUT, UNDERWATER_LAYOUT, SUMMIT_LAYOUT, type LevelLayout } from '../src/game/layout'
 import { rng } from '../src/game/world/shared'
+import { LEVEL_ORDER, nextLevel, previousLevel } from '../src/game/levels'
 
 const LEVELS: Array<[string, LevelLayout, typeof ISLAND_CONTENT]> = [
   ['Чудо-остров', ISLAND_LAYOUT, ISLAND_CONTENT],
@@ -9,6 +10,16 @@ const LEVELS: Array<[string, LevelLayout, typeof ISLAND_CONTENT]> = [
   ['Механический город', CLOCKWORK_LAYOUT, CLOCKWORK_CONTENT],
   ['Подводная бухта', UNDERWATER_LAYOUT, UNDERWATER_CONTENT],
 ]
+
+describe('level progression', () => {
+  it('places Fantastic Mountains after Underwater Bay as the final level', () => {
+    expect(LEVEL_ORDER).toEqual(['island', 'planet', 'clockwork', 'underwater', 'summit'])
+    expect(nextLevel('clockwork')).toBe('underwater')
+    expect(nextLevel('underwater')).toBe('summit')
+    expect(nextLevel('summit')).toBeNull()
+    expect(previousLevel('summit')).toBe('underwater')
+  })
+})
 
 describe.each(LEVELS)('%s layout', (_name, layout, content) => {
   it('keeps every resident and collectible inside the safe playable area', () => {
