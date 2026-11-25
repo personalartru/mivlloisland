@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { Physics } from '../../engine/physics'
 import type { LevelLayout } from '../layout'
-import { flat, glowSprite, gradientSky, groundTexture, jitter, rng, starField } from './shared'
+import { addMaze, flat, glowSprite, gradientSky, groundTexture, insideMaze, jitter, rng, starField } from './shared'
 
 type Mote = { sprite: THREE.Sprite; home: THREE.Vector3; phase: number; speed: number }
 type Moth = { root: THREE.Group; wings: THREE.Mesh[]; center: THREE.Vector3; phase: number; radius: number; height: number }
@@ -75,6 +75,7 @@ export class PlanetWorld {
     this.scene.add(hemi, ambient, this.sun, this.sun.target, rim, fill)
 
     this.addGround(random)
+    addMaze(this.scene, this.physics, layout.maze!, '#30245f', '#ff9ae6')
     this.addCraters(random)
     this.addCrystalForest(random)
     this.addShards(random)
@@ -236,6 +237,7 @@ export class PlanetWorld {
       { x: -2, z: 6.5, r: 2.2, color: '#7ef0ff' },
     ]
     for (const crater of craters) {
+      if (insideMaze(this.layout.maze!, crater.x, crater.z, crater.r)) continue
       const basin = new THREE.Mesh(new THREE.CircleGeometry(crater.r, 40), flat(new THREE.Color('#251a45')))
       basin.rotation.x = -Math.PI / 2
       basin.position.set(crater.x, 0.035, crater.z)
@@ -271,6 +273,7 @@ export class PlanetWorld {
       [-19, -14], [-9, -17], [20, -18], [13, 17], [-24, 0], [23, 6], [6, 12.5], [-22, 20],
     ]
     for (const [cx, cz] of clusters) {
+      if (insideMaze(this.layout.maze!, cx, cz, 3)) continue
       const group = new THREE.Group()
       group.position.set(cx, 0, cz)
       const spires = 4 + Math.floor(random() * 4)
@@ -310,7 +313,7 @@ export class PlanetWorld {
       const d = 4 + random() * 24
       const x = Math.cos(a) * d
       const z = Math.sin(a) * d
-      if (this.nearSpot(x, z, 1.4)) continue
+      if (insideMaze(this.layout.maze!, x, z, 0.5) || this.nearSpot(x, z, 1.4)) continue
       const h = 0.3 + random() * 0.8
       const shard = new THREE.Mesh(new THREE.ConeGeometry(0.1 + random() * 0.12, h, 4), shardMat)
       shard.position.set(x, h / 2, z)

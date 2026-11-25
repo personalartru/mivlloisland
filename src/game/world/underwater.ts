@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { Physics } from '../../engine/physics'
 import type { LevelLayout } from '../layout'
 import { createUnderwaterState, bubbleMultiplierAt, updateUnderwaterState, type UnderwaterState } from '../underwater'
-import { flat, glowSprite, gradientSky, groundTexture, rng } from './shared'
+import { addMaze, flat, glowSprite, gradientSky, groundTexture, insideMaze, rng } from './shared'
 
 export class UnderwaterWorld {
   readonly scene = new THREE.Scene()
@@ -31,6 +31,7 @@ export class UnderwaterWorld {
     this.sun.shadow.mapSize.set(shadowMapSize, shadowMapSize)
     this.scene.add(this.sun, this.sun.target)
     this.addSeabed(random)
+    addMaze(this.scene, this.physics, layout.maze!, '#15556b', '#7ef0e6')
     this.addCoralGardens(random)
     this.addRuins()
     this.beacon = this.addBeacon()
@@ -90,8 +91,10 @@ export class UnderwaterWorld {
     this.physics.addStaticCylinder(new THREE.Vector3(0, -2.5, 0), r, 5)
     for (let i = 0; i < 24; i++) {
       const a = random() * Math.PI * 2; const d = 3 + random() * 25
+      const x = Math.cos(a) * d; const z = Math.sin(a) * d
+      if (insideMaze(this.layout.maze!, x, z, .4)) continue
       const pebble = new THREE.Mesh(new THREE.DodecahedronGeometry(.16 + random() * .22, 0), flat(new THREE.Color(i % 2 ? '#4b8e98' : '#9d7892')))
-      pebble.position.set(Math.cos(a) * d, .15, Math.sin(a) * d); pebble.rotation.y = random() * 4; this.scene.add(pebble)
+      pebble.position.set(x, .15, z); pebble.rotation.y = random() * 4; this.scene.add(pebble)
     }
   }
 
@@ -101,6 +104,7 @@ export class UnderwaterWorld {
     ]
     const colors = ['#ff887b', '#ffb36b', '#d59cff', '#63e0cf']
     for (const [i, [x, z]] of gardenSpots.entries()) {
+      if (insideMaze(this.layout.maze!, x, z, 2)) continue
       const g = new THREE.Group()
       for (let branch = 0; branch < 5; branch++) {
         const h = .7 + random() * 1.2
@@ -135,7 +139,28 @@ export class UnderwaterWorld {
   }
   private addResonators(): void { for (const at of this.layout.underwater!.resonators) { const r = new THREE.Mesh(new THREE.TorusGeometry(1.05, .17, 8, 16), new THREE.MeshStandardMaterial({ color: '#426a83', emissive: '#ffe6a8', emissiveIntensity: .15, metalness: .25, roughness: .35 })); r.position.set(at.x, .65, at.z); r.rotation.x = Math.PI / 2; this.scene.add(r); this.resonators.push(r); const l = new THREE.PointLight('#ffe6a8', .08, 5); l.position.set(at.x, 1.4, at.z); this.scene.add(l); this.lights.push(l); this.physics.addStaticCylinder(new THREE.Vector3(at.x, .5, at.z), 1.2, .7) } }
   private addBubbleLanes(): void { for (const lane of this.layout.underwater!.bubbleLanes) { const ring = new THREE.Mesh(new THREE.RingGeometry(lane.radius * .5, lane.radius, 16), new THREE.MeshBasicMaterial({ color: '#81e7ff', transparent: true, opacity: .58, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.set(lane.center.x, .08, lane.center.z); this.scene.add(ring); this.lanes.push(ring) } }
-  private addKelp(random: () => number): void { for (let i = 0; i < 28; i++) { const a = random() * Math.PI * 2; const d = 4 + random() * 22; const x = Math.cos(a) * d; const z = Math.sin(a) * d; const g = new THREE.Group(); const stem = new THREE.Mesh(new THREE.CapsuleGeometry(.08, .9 + random() * 1.4, 4, 7), flat(new THREE.Color(i % 2 ? '#2ca87f' : '#42c5a5'))); stem.position.y = .7; g.add(stem); for (let leaf = 0; leaf < 2; leaf++) { const blade = new THREE.Mesh(new THREE.CapsuleGeometry(.045, .55, 4, 6), flat(new THREE.Color('#67d6a0'))); blade.position.set(leaf ? .18 : -.18, .9 + leaf * .2, 0); blade.rotation.z = leaf ? -.35 : .35; g.add(blade) } g.position.set(x, 0, z); g.rotation.z = (random() - .5) * .3; this.scene.add(g) } }
+  private addKelp(random: () => number): void {
+    for (let i = 0; i < 28; i++) {
+      const a = random() * Math.PI * 2
+      const d = 4 + random() * 22
+      const x = Math.cos(a) * d
+      const z = Math.sin(a) * d
+      if (insideMaze(this.layout.maze!, x, z, 1)) continue
+      const g = new THREE.Group()
+      const stem = new THREE.Mesh(new THREE.CapsuleGeometry(.08, .9 + random() * 1.4, 4, 7), flat(new THREE.Color(i % 2 ? '#2ca87f' : '#42c5a5')))
+      stem.position.y = .7
+      g.add(stem)
+      for (let leaf = 0; leaf < 2; leaf++) {
+        const blade = new THREE.Mesh(new THREE.CapsuleGeometry(.045, .55, 4, 6), flat(new THREE.Color('#67d6a0')))
+        blade.position.set(leaf ? .18 : -.18, .9 + leaf * .2, 0)
+        blade.rotation.z = leaf ? -.35 : .35
+        g.add(blade)
+      }
+      g.position.set(x, 0, z)
+      g.rotation.z = (random() - .5) * .3
+      this.scene.add(g)
+    }
+  }
   private addJellyfish(random: () => number): void { for (let i = 0; i < 8; i++) { const g = new THREE.Group(); const dome = new THREE.Mesh(new THREE.SphereGeometry(.55, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#cf9cff', transparent: true, opacity: .72, emissive: '#a76cff', emissiveIntensity: .45 })); g.add(dome); for (let t = 0; t < 4; t++) { const tent = new THREE.Mesh(new THREE.CylinderGeometry(.025, .045, .9, 5), flat(new THREE.Color('#8ff1e5'))); tent.position.set((t - 1.5) * .18, -.4, 0); g.add(tent) } g.position.set(-22 + random() * 44, 3 + random() * 8, -20 + random() * 40); this.scene.add(g); this.jellyfish.push(g) } }
   private addBoundary(random: () => number): void { const n = 64; const r = this.layout.playableRadius + 1; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; const x = Math.cos(a) * r; const z = Math.sin(a) * r; this.physics.addStaticBox(new THREE.Vector3(x, 2.5, z), new THREE.Vector3(.6, 5, 3.5), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -a)); if (i % 2 === 0) { const b = glowSprite('#81e7ff', .3 + random() * .25, .18); b.position.set(x, 1 + random() * 2, z); this.scene.add(b); this.bubbles.push(b) } } for (let i = 0; i < 24; i++) { const b = glowSprite('#d5f9ff', .18 + random() * .2, .2); b.position.set(-24 + random() * 48, 1 + random() * 5, -24 + random() * 48); this.scene.add(b); this.bubbles.push(b) } }
 }
