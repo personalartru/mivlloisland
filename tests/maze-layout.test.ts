@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { CLOCKWORK_LAYOUT, SUMMIT_LAYOUT } from '../src/game/layout'
+import { CLOCKWORK_LAYOUT, ISLAND_LAYOUT, PLANET_LAYOUT, SUMMIT_LAYOUT, UNDERWATER_LAYOUT } from '../src/game/layout'
 
 describe('quest mazes', () => {
   it.each([
+    ['planet', PLANET_LAYOUT, 'stardust', 5],
     ['clockwork', CLOCKWORK_LAYOUT, 'valve', 3],
+    ['underwater', UNDERWATER_LAYOUT, 'shell', 4],
     ['summit', SUMMIT_LAYOUT, 'lantern', 4],
   ] as const)('%s maze has a connected route and keeps every quest item in a corridor', (_id, layout, kind, expectedCount) => {
     const maze = layout.maze!
@@ -34,5 +36,15 @@ describe('quest mazes', () => {
       expect(maze.grid[row]?.[column]).toBe('.')
       expect(reached.has(`${row}:${column}`)).toBe(true)
     }
+  })
+
+  it('gives each level after the island a distinct, progressively larger maze', () => {
+    expect(ISLAND_LAYOUT.maze).toBeUndefined()
+    const mazes = [PLANET_LAYOUT, CLOCKWORK_LAYOUT, UNDERWATER_LAYOUT, SUMMIT_LAYOUT].map(layout => layout.maze!)
+    expect(mazes.map(maze => [maze.grid.length, maze.grid[0]!.length])).toEqual([[7, 7], [7, 9], [9, 9], [11, 11]])
+    expect(new Set(mazes.map(maze => maze.grid.join('\n'))).size).toBe(mazes.length)
+
+    const openCells = mazes.map(maze => (maze.grid.join('').match(/\./g) ?? []).length)
+    expect(openCells.every((count, index) => index === 0 || count > openCells[index - 1]!)).toBe(true)
   })
 })
