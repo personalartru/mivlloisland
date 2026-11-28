@@ -65,7 +65,7 @@ function generateMazeGrid(height: number, width: number, seed: number): string[]
   return grid.map(row => row.join(''))
 }
 
-const planetMaze: MazeLayout = { center: v(16, 0, 12), cellSize: 1.05, grid: generateMazeGrid(7, 7, 20261116) }
+const planetMaze: MazeLayout = { center: v(16, 0, 13), cellSize: 1.5, grid: generateMazeGrid(7, 7, 20261116) }
 const clockworkMaze: MazeLayout = { center: v(-20, 0, 0), cellSize: 1.35, grid: generateMazeGrid(7, 9, 20261117) }
 const underwaterMaze: MazeLayout = { center: v(-18, 0, 0), cellSize: 1.35, grid: generateMazeGrid(9, 9, 20261118) }
 const summitMaze: MazeLayout = { center: v(0, 0, -10.5), cellSize: 1.5, grid: generateMazeGrid(11, 11, 20261119) }
@@ -83,7 +83,7 @@ export const ISLAND_LAYOUT: LevelLayout = {
 }
 export const PLANET_LAYOUT: LevelLayout = {
   radius: 30, playableRadius: 28.2, spawn: v(0, 1, 0),
-  npcSpots: { lumo: v(10.5, 0, 8.5), bip: v(-11.5, 0, 10.5), whale: v(0, 0, -12.5), keeper: v(-14.5, 0, -6.5), comet: v(15.5, 0, -7.5), lunatic: v(-3.5, 0, 17.5) },
+  npcSpots: { lumo: v(9.5, 0, 8.5), bip: v(-11.5, 0, 10.5), whale: v(0, 0, -12.5), keeper: v(-14.5, 0, -6.5), comet: v(15.5, 0, -7.5), lunatic: v(-3.5, 0, 17.5) },
   itemSpots: { stardust: [mazeCell(planetMaze, 1, 1, .7), mazeCell(planetMaze, 1, 3, .7), mazeCell(planetMaze, 1, 5, .7), mazeCell(planetMaze, 3, 1, .7), mazeCell(planetMaze, 3, 5, .7)], seed: [v(-8,.7,8),v(-13,.7,7),v(-16,.7,12.5),v(-9.5,.7,14.5)], nebula: [v(0,.7,-8.5),v(8.5,.7,-14),v(2,.7,-24)], shard: [v(-9,.7,-3),v(-13,.7,-2.5),v(-18,.7,-5),v(-20,.7,-10),v(-13,.7,-12)], spark: [v(10,.7,-4),v(16,.7,-3),v(20,.7,-9),v(11,.7,-12)], lunar: [v(-6,.7,20),v(3.5,.7,23),v(-8.5,.7,15.5)] },
   water: { center: v(5, 0, -18), radius: 4.4 }, landmark: v(0, 0, 24), building: v(-16, 0, 3), seed: 20261116, maze: planetMaze,
 }

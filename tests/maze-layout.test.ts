@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_CONFIG } from '../src/game/config'
 import { CLOCKWORK_LAYOUT, ISLAND_LAYOUT, PLANET_LAYOUT, SUMMIT_LAYOUT, UNDERWATER_LAYOUT } from '../src/game/layout'
 
 describe('quest mazes', () => {
@@ -36,6 +37,12 @@ describe('quest mazes', () => {
       expect(maze.grid[row]?.[column]).toBe('.')
       expect(reached.has(`${row}:${column}`)).toBe(true)
     }
+  })
+
+  it('keeps the planet maze corridor wider than the player collider', () => {
+    const maze = PLANET_LAYOUT.maze!
+    const corridorClearance = maze.cellSize - 0.32 // Wall plus the 0.04-unit cap overhang.
+    expect(corridorClearance).toBeGreaterThan(2 * DEFAULT_CONFIG.player.radius + 0.04)
   })
 
   it('gives each level after the island a distinct, progressively larger maze', () => {
